@@ -152,6 +152,31 @@ MP_results <- MP_results[c(1,8,9)]
 #DATA CLEANING: Metaphlan4 Results
 ###############################
 #SPECIES METAPHLAN4 DATA
+library(tidyr)
+
+# create an empty list to store the data frames
+df_list <- list()
+
+# use a for loop to read each file, preprocess it, add a "Run" column with the corresponding run number, and store the data frame in the list
+for (i in 1:10) {
+  filename <- paste0("NX", i, "_metaphlan4.txt")
+  run_num <- sprintf("%02d", i)
+  df <- read.delim(filename, header = T, sep = "\t", dec = ".")
+  df <- df[grep("s__", df$clade_name),]
+  df$clade_name <- gsub(".*\\|s__","", df$clade_name)
+  df$clade_name <- gsub("_"," ", df$clade_name)
+  colnames(df) <- gsub("_R1_mpa_out","", colnames(df))
+  df <- df %>% pivot_longer(-c(clade_name), names_to="sample_names", values_to = "abundance")
+  df$Run <- run_num
+  df_list[[i]] <- df
+}
+
+# combine all the data frames into a single data frame using rbind
+MP4_results <- do.call(rbind, df_list)
+
+# print the combined data frame
+MP4_results
+
 MP4_NX1 <- read.delim("NX1_metaphlan4.txt", header = T, sep = "\t", dec = ".")
 MP4_NX2 <- read.delim("NX2_metaphlan4.txt", header = T, sep = "\t", dec = ".")
 
