@@ -1,0 +1,42 @@
+dir=$(pwd)
+cd simulated_sequencing 
+
+#Copy tags.txt with adapter details to the current folder
+cp /path_to../tags.txt .
+
+#Combine the each line from genome_list.txt reads2.txt quality_scores.txt tags.txt as induvidual columns in a txt file
+paste -d '\t' genome_list.txt reads2.txt quality_scores.txt tags.txt | awk '{printf("%s",$1); for(i=2;i<=NF;i++){if(i%4==1){printf("\t%s",$i)}else{printf(" %s",$i)}}printf("\n");}' > outputfile.txt
+
+################################################################################################################################################
+# add indexes to sequences, based on Nextera XT kit
+module load seqkit/1.4 
+# use seqkit module to add indexes to sequences (each index is 8 bp long)
+awk -F ' ' '{print"cat "$1".fasta | seqkit mutate -i 0:"$8" > "$1"_a.fasta"}' outputfile.txt > forward_indexes.sh
+sh forward_indexes.sh
+awk -F ' ' '{print"cat "$1"_a.fasta | seqkit mutate -i -1:"$10" > "$1"_b.fasta"}' outputfile.txt > reverse_indexes.sh
+sh reverse_indexes.sh
+module unload seqkit/1.4
+
+#Keeping the original fasta file as back up for now (delete later)
+mkdir original_fasta
+awk -F ' ' '{print"mv "$1".fasta original_fasta"}' outputfile.txt > move_orignal_fasta.sh
+sh move_orignal_fasta.sh
+
+# remove intermediary files
+awk -F ' ' '{print"rm "$1"_a.fasta"}' outputfile.txt > remove_intermediary_fasta.sh
+sh remove_intermediary_fasta.sh
+
+# check average length of sequences
+awk '{/>/&&++a||b+=length()}END{print b/a}' *.fasta > length_indexed_fasta.txt
+
+module load python3.7/i3
+pip3 install --user InSilicoSeq
+pip install biopython==1.78
+#############################################################################################################################################################################################  
+mkdir insilicoseq
+awk -F ' ' '{print"iss generate --cpus 20 --genomes "$1"_b.fasta --abundance 'zero_inflated_lognormal' --n_reads "$3" --model hiseq --output insilicoseq/"$1""}' outputfile.txt > insilico_simulations.sh 
+sh insilico_simulations.sh ########## cuts up genomes into 150bp length
+#############################################################################################################################################################################################    	
+module unload python3.7/i3
+
+
