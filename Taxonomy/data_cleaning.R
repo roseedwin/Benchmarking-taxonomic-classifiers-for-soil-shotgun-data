@@ -104,6 +104,25 @@ KJ_results <- KJ_results[c(1,2,14)]
 #DATA CLEANING: Metaphlan Results
 ####################################################
 #SPECIES METAPHLAN DATA
+# create an empty list to store the data frames
+df_list <- list()
+
+# use a for loop to read each file, reshape it using pivot_longer(), add a "Run" column with the corresponding run number, and store the data frame in the list
+for (i in 1:10) {
+  filename <- paste0("NX", i, "_metaphlan_species.txt")
+  run_num <- sprintf("%02d", i)
+  df <- read.delim(filename, header = T, sep = "\t", dec = ".") %>% 
+    pivot_longer(-c(sample), names_to="sample_names", values_to = "abundance")
+  df$Run <- run_num
+  df_list[[i]] <- df
+}
+
+# combine all the data frames into a single data frame using rbind
+MP_results <- do.call(rbind, df_list)
+
+# print the combined data frame
+MP_results
+
 MP_NX1 <- read.delim("NX1_metaphlan_species.txt", header = T, sep = "\t", dec = ".")
 MP_NX2 <- read.delim("NX2_metaphlan_species.txt", header = T, sep = "\t", dec = ".")
 
