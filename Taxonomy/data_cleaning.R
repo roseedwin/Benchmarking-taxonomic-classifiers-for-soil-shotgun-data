@@ -7,6 +7,35 @@ library(tidyr)
 
 #Read Expected abundance files
 #Add the name of the Run to the dataframe
+
+# create an empty list to store the data frames
+df_list <- list()
+
+# use a for loop to read each CSV file and add a "Run" column with the corresponding run number
+for (i in 1:10) {
+  filename <- paste0("NX", i, "_abundance.txt")
+  run_num <- sprintf("%02d", i)
+  df <- read.csv(filename, header=F, sep="")
+  df$Run <- run_num
+  df_list[[i]] <- df
+}
+
+# combine all the data frames into a single data frame using rbind
+combined_df <- do.call(rbind, df_list)
+
+# print the combined data frame
+combined_df
+In this example, we first create an empty list called df_list to store the data frames.
+
+We then use a for loop to iterate over the range 1 to 10, and generate the file names and run numbers dynamically using paste0() and sprintf(), respectively. We read in each CSV file using read.csv(), add a "Run" column to each data frame with the corresponding run number, and store each data frame in the df_list list.
+
+Finally, we use the do.call() function with rbind to combine all the data frames in the df_list list into a single data frame called combined_df. We print the combined_df data frame to check that it contains all the rows from all the input data frames.
+
+
+
+
+
+
 AB_NX1 <- read.csv("NX1_abundance.txt", header=F, sep="" )
 AB_NX1['Run'] = '01'
 AB_NX2 <- read.csv("NX2_abundance.txt", header=F, sep="" )
