@@ -8,6 +8,7 @@ library(ggalt)
 library(ggpubr)
 library(PCAtools)
 library(reshape2)
+library(ggthemes)
 
 observed_results <- read.csv("observed_results.csv", header=T)
 observed_results <- observed_results[,c(2,3,4)]
@@ -24,24 +25,13 @@ c<-dcast(data,species~sample_name, value.var= 'abundance', fun.aggregate = sum)
 c[is.na(c)] <- 0
 write.csv(c,"c.csv")
 
-
 data <- read.csv("c.csv", header= T, row.names = 1)
 data <- t(data)
 
 #metadata file
 map <- read.csv("map.csv", header = T, row.names = 1)
 
-library(vegan)
-library(ggplot2)
-library(ggthemes)
-library(RColorBrewer)
-library(wesanderson)
-
 mycols <- wes_palette("Moonrise3")
-
-
-
-
 
 vec1 <- map[,1]
 #vec2 <- map[,4]
@@ -62,37 +52,19 @@ Sp<-ggplot(df,aes(MDS1,MDS2))+
   theme(    
     legend.title=element_text(face="bold",size=12.5),
     axis.title.x=element_text(face="bold",size=12.5),
-    
     axis.title.y=element_text(face="bold",size=12.5),
-    
     plot.title=element_text(face="bold",size=15),
-    
     legend.text = element_text(size=12.5),
-    
     axis.text.y = element_text(size=10),
-    
     axis.text.x = element_text(size=12.5),
-    
     axis.title = element_text(size=12.5)) +
-  
   theme(panel.background = element_rect(colour="black")) +
-  
-  ggtitle("Species dissimilarity Kaiju") +
-  
+  ggtitle("Species dissimilarity Classifiers") +
   geom_point(aes(color = vec1), size=5) +
-  
   stat_ellipse(aes(color=vec1))
 
-
-
-png("poster.png", res = 300, height = 3000, width = 3000)
-
-
+png("Species_dissimilarity_Classifiers.png", res = 300, height = 3000, width = 3000)
 
 Sp
 
-
-
 dev.off()
-
-
