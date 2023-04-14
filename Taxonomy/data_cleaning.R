@@ -126,13 +126,12 @@ MP_results
 colnames(MP_results)[1] <-  "species"
 
 MP_results <- separate(MP_results, col = "sample_names", into = c("sample", "Rest"), sep = "_", extra = "drop") 
-MP_results['Classifier'] = 'metaphlan'
+MP_results['Classifier'] = 'metaphlan3'
 
 MP_results$sample_name = paste(MP_results$sample, MP_results$Run,  MP_results$Classifier, sep=".")
 MP_results <- MP_results[,-c(2,3,5,6)]
 
 MP_results$species <-  gsub("_"," ", MP_results$species)
-#MP_results$species <- gsub("^(\\w+\\s+\\w+).*", "\\1", MP_results$species)
 
 ncols <- max(stringr::str_count(MP_results$species, " ")) + 1
 colmn <- paste("col",1:ncols)
@@ -147,7 +146,7 @@ MP_results <-
   )
 
 MP_results$species = paste(MP_results$`col 1`, MP_results$`col 2`,   sep=" ")
-MP_results <- MP_results[c(1,8,9)]
+MP3_results <- MP_results[c(1,8,9)]
 
 #DATA CLEANING: Metaphlan4 Results
 ###############################
@@ -271,8 +270,6 @@ KG_results <- KG_results[,-c(1,4,5)]
 
 KG_results$abundance <- KG_results$abundance * 100
 
-#KG_results$species <- gsub("^(\\w+\\s+\\w+).*", "\\1", KG_results$species)
-
 ncols <- max(stringr::str_count(KG_results$species, " ")) + 1
 colmn <- paste("col",1:ncols)
 
@@ -288,8 +285,6 @@ KG_results <-
 KG_results$species = paste(KG_results$`col 1`, KG_results$`col 2`,   sep=" ")
 KG_results <- KG_results[c(1,13,14)]
 
-observed_results <- rbind(KG_results,KJ_results,KR_results,MP_results )
-write.csv(observed_results,"observed_results_2.csv")
+observed_results <- rbind(KG_results, KJ_results, KR_results, MP3_results, MP4_results )
+write.csv(observed_results,"observed_results.csv")
 
-#Remove all files with NX in their name
-rm(list=ls())
