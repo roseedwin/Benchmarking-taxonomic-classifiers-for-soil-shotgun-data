@@ -65,13 +65,6 @@ KJ_results <- do.call(rbind, df_list)
 # print the combined data frame
 KJ_results
 
-KJ_NX1 <- read.delim("NX1_Kaiju.txt", header = F, sep = "\t", dec = ".")
-KJ_NX2 <- read.delim("NX2_Kaiju.txt", header = F, sep = "\t", dec = ".")
-
-KJ_NX1['Run'] = '01'
-KJ_NX2['Run'] = '02'
-
-KJ_results <- rbind(KJ_NX1,KJ_NX2)
 KJ_results <- KJ_results[,-c(2,4,5)]
 
 colnames(KJ_results)[1] <- "sample"
@@ -92,8 +85,6 @@ KJ_sum <- KJ_results %>%
   summarize(abundance= sum(abundance)) %>%
   mutate(abundance = (abundance/ sum(abundance)) *100)
 
-#KJ_results$species <- gsub("^(\\w+\\s+\\w+).*", "\\1", KJ_results$species)
-
 ncols <- max(stringr::str_count(KJ_results$species, " ")) + 1
 colmn <- paste("col",1:ncols)
 
@@ -109,14 +100,9 @@ KJ_results <-
 KJ_results$species = paste(KJ_results$`col 1`, KJ_results$`col 2`,   sep=" ")
 KJ_results <- KJ_results[c(1,2,14)]
 
-#KJ_sum$abundance[is.na(KJ_sum$abundance)] <- 0
-#subset_abundance <- KJ_sum$abundance[KJ_sum$sample_name] == "sample19.01.kaiju"
-#sum_abundance <-  sum(KJ_sum$abundance[KJ_sum$sample_name] == "sample19.01.kaiju")
-#Couldnt double check.. going forward ..
-
-####
+####################################################
 #DATA CLEANING: Metaphlan Results
-###############################
+####################################################
 #SPECIES METAPHLAN DATA
 MP_NX1 <- read.delim("NX1_metaphlan_species.txt", header = T, sep = "\t", dec = ".")
 MP_NX2 <- read.delim("NX2_metaphlan_species.txt", header = T, sep = "\t", dec = ".")
