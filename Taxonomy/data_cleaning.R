@@ -1,6 +1,6 @@
 #DATA CLEANING: ABUNDANCE FILES
-
-##############################################################################################################################
+#EXPECTED RESULTS 
+################################################################################################
 library(dplyr)
 library(tidyr)
 #For the 7 runs bring in results and add the run name
@@ -21,30 +21,8 @@ for (i in 1:10) {
 }
 
 # combine all the data frames into a single data frame using rbind
-combined_df <- do.call(rbind, df_list)
+AB <- do.call(rbind, df_list)
 
-# print the combined data frame
-combined_df
-In this example, we first create an empty list called df_list to store the data frames.
-
-We then use a for loop to iterate over the range 1 to 10, and generate the file names and run numbers dynamically using paste0() and sprintf(), respectively. We read in each CSV file using read.csv(), add a "Run" column to each data frame with the corresponding run number, and store each data frame in the df_list list.
-
-Finally, we use the do.call() function with rbind to combine all the data frames in the df_list list into a single data frame called combined_df. We print the combined_df data frame to check that it contains all the rows from all the input data frames.
-
-
-
-
-
-
-AB_NX1 <- read.csv("NX1_abundance.txt", header=F, sep="" )
-AB_NX1['Run'] = '01'
-AB_NX2 <- read.csv("NX2_abundance.txt", header=F, sep="" )
-AB_NX2['Run'] = '02'
-
-#Merge all dataframes together
-AB <- rbind(AB_NX1,AB_NX2)
-
-#AB <- AB_NX1
 #Rename the column_names
 colnames(AB)[1] <- "sample"
 colnames(AB)[2] <- "accession_id"
@@ -67,6 +45,7 @@ colnames(expected_results)[2] <- "species"
 #write.csv(expected_results,"expected_results.csv")
 
 rm(list= setdiff(ls(), "expected_results"))
+
 ###########################.  TAXONOMY CLASSIFIERS .###########################
 #DATA CLEANING: Kaiju Results
 KJ_NX1 <- read.delim("NX1_Kaiju.txt", header = F, sep = "\t", dec = ".")
