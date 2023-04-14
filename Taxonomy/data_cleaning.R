@@ -101,9 +101,9 @@ KJ_results$species = paste(KJ_results$`col 1`, KJ_results$`col 2`,   sep=" ")
 KJ_results <- KJ_results[c(1,2,14)]
 
 ####################################################
-#DATA CLEANING: Metaphlan Results
+#DATA CLEANING: Metaphlan3 Results
 ####################################################
-#SPECIES METAPHLAN DATA
+#SPECIES METAPHLAN3 DATA
 # create an empty list to store the data frames
 df_list <- list()
 
@@ -123,16 +123,6 @@ MP_results <- do.call(rbind, df_list)
 # print the combined data frame
 MP_results
 
-MP_NX1 <- read.delim("NX1_metaphlan_species.txt", header = T, sep = "\t", dec = ".")
-MP_NX2 <- read.delim("NX2_metaphlan_species.txt", header = T, sep = "\t", dec = ".")
-
-MP_NX1 <- MP_NX1 %>% pivot_longer(-c(sample), names_to="sample_names", values_to = "abundance")
-MP_NX2 <- MP_NX2 %>% pivot_longer(-c(sample), names_to="sample_names", values_to = "abundance")
-
-MP_NX1['Run'] = '01'
-MP_NX2['Run'] = '02'
-
-MP_results <- rbind(MP_NX1,MP_NX2)
 colnames(MP_results)[1] <-  "species"
 
 MP_results <- separate(MP_results, col = "sample_names", into = c("sample", "Rest"), sep = "_", extra = "drop") 
@@ -158,33 +148,6 @@ MP_results <-
 
 MP_results$species = paste(MP_results$`col 1`, MP_results$`col 2`,   sep=" ")
 MP_results <- MP_results[c(1,8,9)]
-
-#UNKNOWN METAPHLAN DATA
-###############################
-#Removed the first line manually
-MP_unknown_NX1 <- read.csv("NX1_Metaphlan.tsv", header=T, sep ="" )
-MP_unknown_NX2 <- read.csv("NX2_Metaphlan.tsv", header=T, sep ="" )
-
-MP_unknown_NX1 <- MP_unknown_NX1[,-2]
-MP_unknown_NX2 <- MP_unknown_NX2[,-2]
-
-MP_unknown_NX1 <- MP_unknown_NX1 %>% pivot_longer(-c(clade_name), names_to="sample_names", values_to = "abundance")
-MP_unknown_NX2 <- MP_unknown_NX2 %>% pivot_longer(-c(clade_name), names_to="sample_names", values_to = "abundance")
-
-MP_unknown_NX1['Run'] = 'NX1'
-MP_unknown_NX2['Run'] = 'NX2'
-
-MP_unknown_NX1 <- MP_unknown_NX1[MP_unknown_NX1$clade_name %like% "UNKNOWN", ]
-MP_unknown_NX2 <- MP_unknown_NX2[MP_unknown_NX2$clade_name %like% "UNKNOWN", ]
-
-MP_unknown <- rbind(MP_unknown_NX1,MP_unknown_NX1)
-colnames(MP_unknown)[1] <- "species"
-
-MP_results  <- rbind(MP_unknown,MP_results)
-rm(MP_unknown)
-
-
-
 
 #DATA CLEANING: Metaphlan4 Results
 ###############################
