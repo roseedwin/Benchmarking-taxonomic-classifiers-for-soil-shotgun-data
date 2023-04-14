@@ -177,28 +177,6 @@ MP4_results <- do.call(rbind, df_list)
 # print the combined data frame
 MP4_results
 
-MP4_NX1 <- read.delim("NX1_metaphlan4.txt", header = T, sep = "\t", dec = ".")
-MP4_NX2 <- read.delim("NX2_metaphlan4.txt", header = T, sep = "\t", dec = ".")
-
-MP4_NX1 <-  MP4_NX1[grep("s__", MP4_NX1$clade_name),]
-MP4_NX2 <-  MP4_NX2[grep("s__", MP4_NX2$clade_name),]
-
-MP4_NX1$clade_name <-  gsub(".*\\|s__","", MP4_NX1$clade_name)
-MP4_NX2$clade_name <-  gsub(".*\\|s__","", MP4_NX2$clade_name)
-
-MP4_NX1$clade_name <-  gsub("_"," ", MP4_NX1$clade_name)
-MP4_NX2$clade_name <-  gsub("_"," ", MP4_NX2$clade_name)
-
-colnames(MP4_NX1) <-  gsub("_R1_mpa_out","", colnames(MP4_NX1))
-colnames(MP4_NX2) <-  gsub("_R1_mpa_out","", colnames(MP4_NX2))
-
-MP4_NX1 <- MP4_NX1 %>% pivot_longer(-c(clade_name), names_to="sample_names", values_to = "abundance")
-MP4_NX2 <- MP4_NX2 %>% pivot_longer(-c(clade_name), names_to="sample_names", values_to = "abundance")
-
-MP4_NX1['Run'] = '01'
-MP4_NX2['Run'] = '02'
-
-MP4_results <- rbind(MP4_NX1,MP4_NX2)
 colnames(MP4_results)[1] <-  "species"
 
 MP4_results['Classifier'] = 'metaphlan4'
