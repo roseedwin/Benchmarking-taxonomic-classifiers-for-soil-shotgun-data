@@ -12,10 +12,10 @@ write.csv(sample[,1],"sample.txt", quote=FALSE,row.names=F)
 
 #This creates two files "sample.txt" with 20 rows of sample names, and "genomes.txt" with 20 rows of numbers between 1000-2500
 
-
 #################################################################
 #sequencing data is truncated log normal distribution
 ################################################################
+#script for calculating the meanlog, sdlog and checking the distribution of data is pre_ramdomdiversity.R
 
 # distribution based on input reads in statsdada2 files from various sequencing runs
 # clean lognormal distribution reads accross samples and features
@@ -31,6 +31,8 @@ rand_vect_cont <- function(N, S, sdlog, min,max) {
   even
 }
 
+#Total reads will be the sum of the two fastq files, so if you want the max read to be 35 million for fastq per sample, 
+#you want the total reads to 75 million reads to account for the forward and reverse read/fastq file
 
 total_reads <-  775607898
 vec <- rand_vect_cont(20, S=total_reads,sdlog=16.9, min=10000000, max=100000000)
