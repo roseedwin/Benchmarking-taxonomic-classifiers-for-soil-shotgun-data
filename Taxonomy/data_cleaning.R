@@ -28,7 +28,7 @@ colnames(AB)[1] <- "sample"
 colnames(AB)[2] <- "accession_id"
 colnames(AB)[3] <- "abundance"
 
-########
+########################################################################################################
 
 df_species <- read.csv("df_species.csv", header=T)
 
@@ -46,8 +46,15 @@ colnames(expected_results)[2] <- "species"
 
 rm(list= setdiff(ls(), "expected_results"))
 
-###########################.  TAXONOMY CLASSIFIERS .###########################
+################################################################################################
+###########################.  TAXONOMY CLASSIFIERS .############################################
+################################################################################################
+################################################################################################
+
+################################################################################################
 #DATA CLEANING: Kaiju Results
+################################################################################################
+
 df_list <- list()
 
 # use a for loop to read each file, add a "Run" column with the corresponding run number, and store the data frame in the list
@@ -100,9 +107,9 @@ KJ_results <-
 KJ_results$species = paste(KJ_results$`col 1`, KJ_results$`col 2`,   sep=" ")
 KJ_results <- KJ_results[c(1,2,14)]
 
-####################################################
+################################################################################################
 #DATA CLEANING: Metaphlan3 Results
-####################################################
+################################################################################################
 #SPECIES METAPHLAN3 DATA
 # create an empty list to store the data frames
 df_list <- list()
@@ -148,8 +155,10 @@ MP_results <-
 MP_results$species = paste(MP_results$`col 1`, MP_results$`col 2`,   sep=" ")
 MP3_results <- MP_results[c(1,8,9)]
 
+################################################################################################
 #DATA CLEANING: Metaphlan4 Results
-###############################
+################################################################################################
+
 #SPECIES METAPHLAN4 DATA
 library(tidyr)
 
@@ -188,8 +197,10 @@ MP4_results$species <- gsub("^(\\w+\\s+\\w+).*", "\\1", MP4_results$species)
 ncols <- max(stringr::str_count(MP4_results$species, " ")) + 1
 colmn <- paste("col",1:ncols)
 
+################################################################################################
 #DATA CLEANING: Kraken Results
-#########################################
+################################################################################################
+
 # create an empty list to store the data frames
 df_list <- list()
 
@@ -238,7 +249,10 @@ KR_results <- KR_results[c(1,9,10)]
 
 #KR_results$species <- gsub("^(\\w+\\s+\\w+).*", "\\1", KR_results$species)
 
+################################################################################################
 #DATA CLEANING: Kraken_gtdb Results
+################################################################################################
+
 # create an empty list to store the data frames
 df_list <- list()
 
