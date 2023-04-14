@@ -191,13 +191,24 @@ colmn <- paste("col",1:ncols)
 
 #DATA CLEANING: Kraken Results
 #########################################
-KR_NX1 <- read.delim("NX1_Kraken.txt", header = F, sep = "\t", dec = ".")
-KR_NX2 <- read.delim("NX2_Kraken.txt", header = F, sep = "\t", dec = ".")
+# create an empty list to store the data frames
+df_list <- list()
 
-KR_NX1['Run'] = '01'
-KR_NX2['Run'] = '02'
+# use a for loop to read each file, add a "Run" column with the corresponding run number, and store the data frame in the list
+for (i in 1:10) {
+  filename <- paste0("NX", i, "_Kraken.txt")
+  run_num <- sprintf("%02d", i)
+  df <- read.delim(filename, header = F, sep = "\t", dec = ".")
+  df$Run <- run_num
+  df_list[[i]] <- df
+}
 
-KR_results <- rbind(KR_NX1,KR_NX2)
+# combine all the data frames into a single data frame using rbind
+KR_results <- do.call(rbind, df_list)
+
+# print the combined data frame
+KR_results
+
 KR_results <- KR_results[,-c(3:7)]
 
 colnames(KR_results)[1] <- "sample"
@@ -229,13 +240,24 @@ KR_results <- KR_results[c(1,9,10)]
 #KR_results$species <- gsub("^(\\w+\\s+\\w+).*", "\\1", KR_results$species)
 
 #DATA CLEANING: Kraken_gtdb Results
-KG_NX1 <- read.delim("NX1_Kraken_gtdb.txt", header = F, sep = "\t", dec = ".")
-KG_NX2 <- read.delim("NX2_Kraken_gtdb.txt", header = F, sep = "\t", dec = ".")
+# create an empty list to store the data frames
+df_list <- list()
 
-KG_NX1['Run'] = '01'
-KG_NX2['Run'] = '02'
+# use a for loop to read each file, add a "Run" column with the corresponding run number, and store the data frame in the list
+for (i in 1:10) {
+  filename <- paste0("NX", i, "_Kraken_gtdb.txt")
+  run_num <- sprintf("%02d", i)
+  df <- read.delim(filename, header = F, sep = "\t", dec = ".")
+  df$Run <- run_num
+  df_list[[i]] <- df
+}
 
-KG_results <- rbind(KG_NX1,KG_NX2)
+# combine all the data frames into a single data frame using rbind
+KG_results <- do.call(rbind, df_list)
+
+# print the combined data frame
+KG_results
+
 KG_results <- KG_results[,-c(3:7)]
 
 colnames(KG_results)[1] <- "sample"
