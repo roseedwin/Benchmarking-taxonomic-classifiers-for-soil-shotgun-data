@@ -48,6 +48,23 @@ rm(list= setdiff(ls(), "expected_results"))
 
 ###########################.  TAXONOMY CLASSIFIERS .###########################
 #DATA CLEANING: Kaiju Results
+df_list <- list()
+
+# use a for loop to read each file, add a "Run" column with the corresponding run number, and store the data frame in the list
+for (i in 1:10) {
+  filename <- paste0("NX", i, "_Kaiju.txt")
+  run_num <- sprintf("%02d", i)
+  df <- read.delim(filename, header = F, sep = "\t", dec = ".")
+  df$Run <- run_num
+  df_list[[i]] <- df
+}
+
+# combine all the data frames into a single data frame using rbind
+KJ_results <- do.call(rbind, df_list)
+
+# print the combined data frame
+KJ_results
+
 KJ_NX1 <- read.delim("NX1_Kaiju.txt", header = F, sep = "\t", dec = ".")
 KJ_NX2 <- read.delim("NX2_Kaiju.txt", header = F, sep = "\t", dec = ".")
 
