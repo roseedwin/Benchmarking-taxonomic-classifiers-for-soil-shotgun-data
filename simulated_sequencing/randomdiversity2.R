@@ -34,7 +34,7 @@ rand_vect_cont <- function(N, S, sdlog, min,max) {
 #Total reads will be the sum of the two fastq files, so if you want the max read to be 35 million for fastq per sample, 
 #you want the total reads to 75 million reads to account for the forward and reverse read/fastq file
 
-total_reads <-  775607898
+total_reads <-  75607898
 vec <- rand_vect_cont(20, S=total_reads,sdlog=16.9, min=10000000, max=100000000)
 write.csv(vec, "reads.txt", row.names=F)
 
