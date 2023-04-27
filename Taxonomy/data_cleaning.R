@@ -12,8 +12,8 @@ library(tidyr)
 df_list <- list()
 
 # use a for loop to read each CSV file and add a "Run" column with the corresponding run number
-for (i in 1:10) {
-  filename <- paste0("NX", i, "_abundance.txt")
+for (i in 2:8) {
+  filename <- paste0("merged_Run", i, "_abundance.txt")
   run_num <- sprintf("%02d", i)
   df <- read.csv(filename, header=F, sep="")
   df$Run <- run_num
@@ -28,8 +28,8 @@ colnames(AB)[1] <- "sample"
 colnames(AB)[2] <- "accession_id"
 colnames(AB)[3] <- "abundance"
 
-########################################################################################################
 
+########################################################################################################
 df_species <- read.csv("df_species.csv", header=T)
 
 AB_new <- dplyr::left_join(AB,df_species, by="accession_id")
@@ -42,9 +42,9 @@ expected_results <- AB_new[,c(3,5,7)]
 expected_results$abundance <- expected_results$abundance * 100
 colnames(expected_results)[2] <- "species"
 
-#write.csv(expected_results,"expected_results.csv")
-
+write.csv(expected_results,"expected_results.csv")
 rm(list= setdiff(ls(), "expected_results"))
+
 
 ################################################################################################
 ###########################.  TAXONOMY CLASSIFIERS .############################################
@@ -58,8 +58,8 @@ rm(list= setdiff(ls(), "expected_results"))
 df_list <- list()
 
 # use a for loop to read each file, add a "Run" column with the corresponding run number, and store the data frame in the list
-for (i in 1:10) {
-  filename <- paste0("NX", i, "_Kaiju.txt")
+for (i in 2:8) {
+  filename <- paste0("merged_Run", i, "_Kaiju.txt")
   run_num <- sprintf("%02d", i)
   df <- read.delim(filename, header = F, sep = "\t", dec = ".")
   df$Run <- run_num
@@ -68,9 +68,6 @@ for (i in 1:10) {
 
 # combine all the data frames into a single data frame using rbind
 KJ_results <- do.call(rbind, df_list)
-
-# print the combined data frame
-KJ_results
 
 KJ_results <- KJ_results[,-c(2,4,5)]
 
@@ -83,7 +80,9 @@ KJ_results['Classifier'] = 'kaiju'
 KJ_results$sample_name = paste(KJ_results$sample, KJ_results$Run,  KJ_results$Classifier, sep=".")
 KJ_results <- KJ_results[,-c(1,4,5)]
 
-#Couldnt double check.. going forward ..
+###unclassified calculations ###
+#unclassified <- subset(KJ_results, species == 'unclassified')
+#avg_unclassified <-  mean(unclassified$abundance)
 
 #Removed unclassified
 KJ_results <-  subset(KJ_results, species != "unclassified")
@@ -92,11 +91,17 @@ KJ_sum <- KJ_results %>%
   summarize(abundance= sum(abundance)) %>%
   mutate(abundance = (abundance/ sum(abundance)) *100)
 
+#Removed "cannot be assigned to a (non-viral) species"
+KJ_results <-  subset(KJ_results, species != "cannot be assigned to a (non-viral) species")
+KJ_sum <- KJ_results %>% 
+  group_by(sample_name, species) %>%
+  summarize(abundance= sum(abundance)) %>%
+  mutate(abundance = (abundance/ sum(abundance)) *100)
+
 ncols <- max(stringr::str_count(KJ_results$species, " ")) + 1
 colmn <- paste("col",1:ncols)
 
-KJ_results <-
-  tidyr::separate(
+KJ_results <- tidyr::separate(
     data = KJ_results,
     col = species,
     sep = " ",
@@ -108,66 +113,15 @@ KJ_results$species = paste(KJ_results$`col 1`, KJ_results$`col 2`,   sep=" ")
 KJ_results <- KJ_results[c(1,2,14)]
 
 ################################################################################################
-#DATA CLEANING: Metaphlan3 Results
-################################################################################################
-#SPECIES METAPHLAN3 DATA
-# create an empty list to store the data frames
-df_list <- list()
-
-# use a for loop to read each file, reshape it using pivot_longer(), add a "Run" column with the corresponding run number, and store the data frame in the list
-for (i in 1:10) {
-  filename <- paste0("NX", i, "_metaphlan_species.txt")
-  run_num <- sprintf("%02d", i)
-  df <- read.delim(filename, header = T, sep = "\t", dec = ".") %>% 
-    pivot_longer(-c(sample), names_to="sample_names", values_to = "abundance")
-  df$Run <- run_num
-  df_list[[i]] <- df
-}
-
-# combine all the data frames into a single data frame using rbind
-MP_results <- do.call(rbind, df_list)
-
-# print the combined data frame
-MP_results
-
-colnames(MP_results)[1] <-  "species"
-
-MP_results <- separate(MP_results, col = "sample_names", into = c("sample", "Rest"), sep = "_", extra = "drop") 
-MP_results['Classifier'] = 'metaphlan3'
-
-MP_results$sample_name = paste(MP_results$sample, MP_results$Run,  MP_results$Classifier, sep=".")
-MP_results <- MP_results[,-c(2,3,5,6)]
-
-MP_results$species <-  gsub("_"," ", MP_results$species)
-
-ncols <- max(stringr::str_count(MP_results$species, " ")) + 1
-colmn <- paste("col",1:ncols)
-
-MP_results <-
-  tidyr::separate(
-    data = MP_results,
-    col = species,
-    sep = " ",
-    into = colmn,
-    remove = FALSE
-  )
-
-MP_results$species = paste(MP_results$`col 1`, MP_results$`col 2`,   sep=" ")
-MP3_results <- MP_results[c(1,8,9)]
-
-################################################################################################
 #DATA CLEANING: Metaphlan4 Results
 ################################################################################################
-
-#SPECIES METAPHLAN4 DATA
-library(tidyr)
 
 # create an empty list to store the data frames
 df_list <- list()
 
 # use a for loop to read each file, preprocess it, add a "Run" column with the corresponding run number, and store the data frame in the list
-for (i in 1:10) {
-  filename <- paste0("NX", i, "_metaphlan4.txt")
+for (i in 2:8) {
+  filename <- paste0("merged_Run", i, "_metaphlan4.txt")
   run_num <- sprintf("%02d", i)
   df <- read.delim(filename, header = T, sep = "\t", dec = ".")
   df <- df[grep("s__", df$clade_name),]
@@ -197,6 +151,7 @@ MP4_results$species <- gsub("^(\\w+\\s+\\w+).*", "\\1", MP4_results$species)
 ncols <- max(stringr::str_count(MP4_results$species, " ")) + 1
 colmn <- paste("col",1:ncols)
 
+
 ################################################################################################
 #DATA CLEANING: Kraken Results
 ################################################################################################
@@ -205,8 +160,8 @@ colmn <- paste("col",1:ncols)
 df_list <- list()
 
 # use a for loop to read each file, add a "Run" column with the corresponding run number, and store the data frame in the list
-for (i in 1:10) {
-  filename <- paste0("NX", i, "_Kraken.txt")
+for (i in 2:8) {
+  filename <- paste0("merged_Run", i, "_Kraken.txt")
   run_num <- sprintf("%02d", i)
   df <- read.delim(filename, header = F, sep = "\t", dec = ".")
   df$Run <- run_num
@@ -245,9 +200,13 @@ KR_results <-
   )
 
 KR_results$species = paste(KR_results$`col 1`, KR_results$`col 2`,   sep=" ")
-KR_results <- KR_results[c(1,9,10)]
+KR_results <- KR_results[c(1,10,11)]
 
-#KR_results$species <- gsub("^(\\w+\\s+\\w+).*", "\\1", KR_results$species)
+#Check sum
+#sum_abundance <- aggregate(KR_results$abundance, by =list(KR_results$sample_name), FUN = sum)
+#colnames(sum_abundance)  <- c("sample_name", "total_abundance")
+#sum_abundance
+
 
 ################################################################################################
 #DATA CLEANING: Kraken_gtdb Results
@@ -257,8 +216,8 @@ KR_results <- KR_results[c(1,9,10)]
 df_list <- list()
 
 # use a for loop to read each file, add a "Run" column with the corresponding run number, and store the data frame in the list
-for (i in 1:10) {
-  filename <- paste0("NX", i, "_Kraken_gtdb.txt")
+for (i in 2:8) {
+  filename <- paste0("merged_Run", i, "_Kraken_gtdb.txt")
   run_num <- sprintf("%02d", i)
   df <- read.delim(filename, header = F, sep = "\t", dec = ".")
   df$Run <- run_num
@@ -299,6 +258,5 @@ KG_results <-
 KG_results$species = paste(KG_results$`col 1`, KG_results$`col 2`,   sep=" ")
 KG_results <- KG_results[c(1,13,14)]
 
-observed_results <- rbind(KG_results, KJ_results, KR_results, MP3_results, MP4_results )
+observed_results <- rbind(KG_results, KJ_results, KR_results, MP4_results )
 write.csv(observed_results,"observed_results.csv")
-
