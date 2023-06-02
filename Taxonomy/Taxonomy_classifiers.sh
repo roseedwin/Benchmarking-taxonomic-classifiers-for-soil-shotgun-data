@@ -53,6 +53,30 @@ kaiju2table -t /kaijudb/nodes.dmp \
 done
 module unload kaiju/1.7.4
 
+cd TAXONOMY/KAIJU
+rename 'kaiju_' '' *tsv
+  categories=("order" "species" "genus" "class" "phylum" "family")
+
+for category in "${categories[@]}"; do
+	for x in $(ls *"$category".tsv | cut -d "_" -f1); do
+    	awk -v var="$x" '{print var,$0}' OFS="\t" "$x"_"$category".tsv >> "$x"_samplename_added.report
+    	done
+   	for x in $(ls *samplename*); do
+   	tail -n +2 $x >> "$category"_kaiju.txt
+   	done
+
+	rm *.report
+	rm *"$category".tsv
+
+    input_file="${category}_kaiju.txt"
+    output_file="${category}_Kaiju.txt"
+    
+    sed -e 's/TAXONOMY\/KAIJU\///g' -e 's/_out//g' "$input_file" > "$output_file"
+done
+
+rm *kaiju.txt
+cd ../..
+
 # Record end time
 end_time_Kaiju=$(date +%s)
 
