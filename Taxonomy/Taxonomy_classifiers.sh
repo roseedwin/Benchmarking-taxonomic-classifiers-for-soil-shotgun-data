@@ -93,7 +93,7 @@ start_time_Kraken=$(date +%s)
   for ((sample=1; sample<=20; sample++)); do
     i="sample${sample}"
   module load kraken2/2.1.1
-  kraken2 --db /data/databases/kraken2_pluspf_20210517 --threads 10 \
+  kraken2 --db /path_to_kraken_database --threads 10 \
         --paired "$i"_R1.fastq.gz "$i"_R2.fastq.gz --output TAXONOMY/KRAKEN/"$i"_kraken\
         --report TAXONOMY/KRAKEN/"$i"_report
 
@@ -163,7 +163,7 @@ start_time_customKraken=$(date +%s)
   for ((sample=1; sample<=20; sample++)); do
     i="sample${sample}"
   module load kraken2/2.1.1
-  kraken2 --db /data/Food/analysis/R1111_Soilmetadata/Main_data/Kraken/kraken_gtdbtk_db2 --threads 10 \
+  kraken2 --db /path_to_database/kraken_gtdbtk_db2 --threads 10 \
         --paired "$i"_R1.fastq.gz "$i"_R2.fastq.gz --output TAXONOMY/KRAKEN_gtdb2/"$i"_kraken\
         --report TAXONOMY/KRAKEN_gtdb2/"$i"_report
 
