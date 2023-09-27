@@ -1,53 +1,51 @@
 categories=("species" "genus" "family" "class" "order" "phylum")
 directories=("Run1" "Run2" "Run3" "Run4" "Run5" "Run6" "Run7" "Run8" "Run9" "Run10")
 
-##################################################################################
-#Rename all compiled result files incorporating the Run name 
-#For e.g., species_Kaiju.txt will be renamed to sepecies_Run1_Kaiju.txt
-##################################################################################
-
+# Rename all compiled result files incorporating the Run name
 for category in "${categories[@]}"; do
     for directory in "${directories[@]}"; do
+        
+        # For Kaiju
         cd "$directory/TAXONOMY/KAIJU"
         mv "${category}_Kaiju.txt" "${category}_${directory}_Kaiju.txt"
         cd ../../..
-    done
-done
-
-for category in "${categories[@]}"; do
-    for directory in "${directories[@]}"; do
+        
+        # For Kraken
         cd "$directory/TAXONOMY/KRAKEN"
         mv "${category}_Kraken.txt" "${category}_${directory}_Kraken.txt"
         cd ../../..
-    done
-    done
 
-for category in "${categories[@]}"; do
-    for directory in "${directories[@]}"; do
+        # For Kraken_gtdb2
         cd "$directory/TAXONOMY/KRAKEN_gtdb2"
         mv "${category}_Kraken_gtdb.txt" "${category}_${directory}_Kraken_gtdb.txt"
         cd ../../..
+        
     done
 done
 
+# Rename Metaphlan3 and Metaphlan4 results
 for directory in "${directories[@]}"; do
-        cd "$directory/TAXONOMY/METAPHLAN3"
-        mv "Metaphlan3.tsv" "${directory}_Metaphlan3.tsv"
-        cd ../../..
+    cd "$directory/TAXONOMY/METAPHLAN3"
+    mv "Metaphlan3.tsv" "${directory}_Metaphlan3.tsv"
+    cd ../../..
+
+    cd "$directory/TAXONOMY/METAPHLAN4"
+    mv "Metaphlan4.tsv" "${directory}_Metaphlan4.tsv"
+    cd ../../..
 done
 
+# Move all result files into one folder
+mkdir -p Taxonomy_results
 for directory in "${directories[@]}"; do
-        cd "$directory/TAXONOMY/METAPHLAN4"
-        mv "Metaphlan4.tsv" "${directory}_Metaphlan4.tsv"
-        cd ../../..
-done
-
-#########################################
-#Move all result files into one folder
-#########################################
-mkdir Taxonomy_results
-for directory in "${directories[@]}"; do
+    # Move Metaphlan3 and Metaphlan4 results
     find "${directory}" -type f \( -name "*Metaphlan3.tsv" -o -name "*Metaphlan4.tsv" \) -exec cp -t Taxonomy_results/ {} +
+
+    # Move Kaiju results
+    find "${directory}" -type f -name "*_Kaiju.txt" -exec cp -t Taxonomy_results/ {} +
+
+    # Move Kraken results
+    find "${directory}" -type f -name "*_Kraken.txt" -exec cp -t Taxonomy_results/ {} +
+
+    # Move Kraken_gtdb2 results
+    find "${directory}" -type f -name "*_Kraken_gtdb.txt" -exec cp -t Taxonomy_results/ {} +
 done
-
-
