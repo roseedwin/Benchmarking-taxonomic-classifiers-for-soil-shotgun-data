@@ -1,0 +1,133 @@
+library(vegan)
+
+#Matrix with the rownames as species and column names as the sample(1-20).run(1-10).classifier
+mat <- read.csv("Output/mat_species.csv", row.names = 1)
+
+# Transpose the matrix so that species are columns and sample-classifier combinations are rows
+mat_t <- t(mat)
+
+# Calculate Euclidean distances
+distances <- vegdist(mat_t, method = "euclidean")
+
+# Convert to a data frame
+distances <- as.data.frame(as.matrix(distances))
+
+# Get the unique sample identifiers
+samples <- unique(gsub("_(expected|Kaiju|Kraken|Kraken.gtdb|Metaphlan3|Metaphlan4|Kraken22)$", "", colnames(distances)))
+
+# Get the classifiers
+classifiers <- c("Kaiju","Kraken22", "Kraken.gtdb", "Metaphlan3" ,"Metaphlan4")
+
+# Initialize a data frame to store the results
+classifier_distances <- data.frame()
+
+# Iterate over the samples
+for (sample in samples) {
+  
+  # Iterate over the classifiers
+  for (classifier in classifiers) {
+    
+    # Get the distance
+    distance <- distances[paste0(sample, "_", classifier), paste0(sample, "_expected")]
+    
+    # Add the distance to the data frame
+    classifier_distances <- rbind(classifier_distances, data.frame(Sample = sample, Classifier = classifier, Distance = distance))
+  }
+}
+
+# Write the results to a CSV file
+write.csv(classifier_distances, "classifier_distances.csv", row.names = FALSE)
+
+# Load required libraries
+library(dplyr)
+library(ggplot2)
+library(ggsignif)
+library(dunn.test)
+
+# Read the data
+classifier_distances <- read.csv("Output/classifier_distances.csv")
+
+classifier_distances$Classifier <- gsub("Kraken.gtdb", "custom.Kraken", classifier_distances$Classifier)
+
+classifier_distances <- classifier_distances %>%
+  filter(Classifier != "Kraken") %>%
+  mutate(Classifier = ifelse(Classifier == "Kraken22", "Kraken", Classifier)) %>%
+  separate(Sample, into = c("sample_name", "Run"), sep = "_")
+
+classifier_distances <- classifier_distances %>%
+  mutate(Classifier = ifelse(Classifier == "Metaphlan3", "MetaPhlAn3", Classifier))%>%
+  mutate(Classifier = ifelse(Classifier == "Metaphlan4", "MetaPhlAn4", Classifier))
+
+
+library(rstatix)
+posthoc_run <- classifier_distances %>%
+  group_by(Run) %>%
+  rstatix::dunn_test(Distance ~ Classifier, p.adjust.method = "bonferroni", detailed =TRUE) %>%
+  rstatix::add_significance()
+#write.csv(posthoc_run, "Output/Run_posthoc_results.csv", row.names= FALSE)
+
+kruskal_eff_run <- classifier_distances %>%
+  group_by(Run) %>%
+  rstatix::kruskal_effsize(Distance ~ Classifier) %>%
+  rstatix::add_significance()
+
+kruskal_run <- classifier_distances %>%
+  group_by(Run) %>%
+  rstatix::kruskal_test(Distance ~ Classifier) %>%
+  rstatix::add_significance()
+
+# Remove duplicate columns from the second data frame
+kruskal_run_selected <- kruskal_run %>% select(-c(Run, `.y.`, n))
+
+# Bind the columns together
+kruskal_results <- bind_cols(kruskal_eff_run, kruskal_run_selected)
+#write.csv(kruskal_results, "Output/Kruskal_results.csv", row.names= FALSE)
+
+
+# Order the levels of the Classifier variable
+classifier_distances$Classifier <- factor(classifier_distances$Classifier,
+                                          levels = c("custom.Kraken","Kraken", "Kaiju", "MetaPhlAn4", "MetaPhlAn3"))
+
+
+
+# Set the colors for the classifiers
+classifier_colors <- c(
+  "custom.Kraken" = "#798234",
+  "Kraken" = "#70A494",
+  "Kaiju" = "#BD925A",
+  "MetaPhlAn4" = "#DE8A5A",
+  "MetaPhlAn3" = "#CA562C"
+)
+#################### 
+# Generate the plot with Kruskal test results
+plot <- ggbetweenstats(
+  data = classifier_distances,
+  x = Classifier,
+  y = Distance,
+  type = "nonparametric",
+  pairwise.display = "none",
+  results.subtitle = FALSE, # Added this line
+  ggplot.component = list(
+    theme_bw(),
+    theme(
+      legend.title = element_text(face = "bold", size = 14),
+      axis.title.x = element_text(face = "bold", size = 19),
+      axis.title.y = element_text(face = "bold", size = 19),
+      plot.title = element_text(face = "bold", size = 17),
+      legend.text = element_text(face = "bold", size = 14),
+      axis.text.y = element_text(face = "bold", size = 16),
+      axis.text.x = element_text(face = "bold", size = 15),
+      plot.subtitle = element_text(face = "bold", size = 14),
+      plot.caption = element_text(face = "bold", size = 12),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      legend.position = "none"
+    )
+  ),
+  title = "Euclidean Distance from Expected for Each Classifier"
+) + ylab("Euclidean distance from Expected")
+
+print(plot)
+
+ggsave("Plots/Euclidian.png", plot, width = 10, height = 8, dpi = 600)
+
