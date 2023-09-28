@@ -106,3 +106,9 @@ write.csv(metadata_fungi_dd,"metadata_fungi_final.csv")
 
 Accession_numbers <- metadata_fungi_dd$assemblyaccession
 write.csv(Accession_numbers,"Accession_numbers.csv")
+
+##DOWNLOADING FUNGAL GENOMES USING COMMAND LINE TOOLS
+#Once obtained accession numbers now we can download using command line tools
+for i in $(cat Accession_numbers.csv);do
+datasets download genome accession "$i" --filename "$i".zip
+done
