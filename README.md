@@ -6,23 +6,26 @@ Classifiers compared include Kaiju, Kraken, and Kraken with custom gtdb-tk datab
 
 And custom database used for Kraken is the GTDB-TK database released in 2022 April and Fungal genomes belonging to phylum Basidiomycota, Mucoromycota and Ascomycota as available in the NCBI assembly database on 20th January 2023
 
-**For Creating Soil Specific Mock Community**
-<u>Fungi-genome-downloads</u>
+**For Creating Soil-Specific Mock Community**
+
+**<ins> Fungi-genome-downloads </ins>**
+
 Using REntrez and command line tools download fungal genomes from the Assembly database of NCBI
 
-Step 1: To check how many of the fungal names obtained from MIAE have a Reference genome, Representative genome, or chromosome or contig level assembly.
+_Step 1_: To check how many of the fungal names obtained from MIAE have a Reference genome, Representative genome, or chromosome or contig level assembly.
 
-Step 2: After obtaining the names that check-in for the filters used, obtain the Accession numbers belonging to each fungi
+_Step 2_: After obtaining the names that check-in for the filters used, obtain the Accession numbers belonging to each fungi
 
-Step 3: Fetching metadata and double checking the pulls Once the metadata and Accession numbers are obtained use command line tools to obtain genome
+_Step 3_: Fetching metadata and double checking the pulls Once the metadata and Accession numbers are obtained use command line tools to obtain genome
 
-Step 4: Download genomes using command line tools
+_Step 4_: Download genomes using command line tools
 
 Fungal-mitochondrial-genomes: In the absence of a huge turnover of Fungal genomes (89 genomes obtained from Assembly database). The mitochondrial fasta files, in RefSeq from the nuccore database were also downloaded to add to the database (38 mitochondrial genomes) and 6 from the RefSoil database
 
 A total of 133 fungal representatives for the soil Fungal database
 
-<u>Bacteria-Archaea-genome-downloads</u>
+**<ins> Bacteria-Archaea-genome-downloads </ins>**
+
 To create a large repository of genome sequences belonging to bacteria and archaea, multiple sources were collated.
 
 RefSoil database: The genome sequences and metadata were obtained from https://github.com/germs-lab/ref_soil/tree/master/script_download_refsoil
