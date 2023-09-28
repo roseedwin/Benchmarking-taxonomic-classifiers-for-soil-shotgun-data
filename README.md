@@ -7,7 +7,7 @@ Classifiers compared include Kaiju, Kraken, and Kraken with custom gtdb-tk datab
 And custom database used for Kraken is the GTDB-TK database released in 2022 April and Fungal genomes belonging to phylum Basidiomycota, Mucoromycota and Ascomycota as available in the NCBI assembly database on 20th January 2023
 
 **For Creating Soil Specific Mock Community**
-__Fungi-genome-downloads__
+<u>Fungi-genome-downloads</u>
 Using REntrez and command line tools download fungal genomes from the Assembly database of NCBI
 
 Step 1: To check how many of the fungal names obtained from MIAE have a Reference genome, Representative genome, or chromosome or contig level assembly.
@@ -22,7 +22,7 @@ Fungal-mitochondrial-genomes: In the absence of a huge turnover of Fungal genome
 
 A total of 133 fungal representatives for the soil Fungal database
 
-__Bacteria-Archaea-genome-downloads__
+<u>Bacteria-Archaea-genome-downloads</u>
 To create a large repository of genome sequences belonging to bacteria and archaea, multiple sources were collated.
 
 RefSoil database: The genome sequences and metadata were obtained from https://github.com/germs-lab/ref_soil/tree/master/script_download_refsoil
