@@ -8,7 +8,7 @@ And custom database used for Kraken is the GTDB-TK database released in 2022 Apr
 
 **For Creating Soil-Specific Mock Community**
 
-**<ins> Fungi-genome-downloads </ins>**
+**<ins> Fungal-genome-downloads </ins>**
 
 Using REntrez and command line tools download fungal genomes from the Assembly database of NCBI
 
