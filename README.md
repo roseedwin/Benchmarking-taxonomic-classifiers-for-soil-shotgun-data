@@ -4,8 +4,6 @@ This repository contains the final version of scripts used to prepare data for s
 
 Classifiers compared include Kaiju, Kraken, and Kraken with custom gtdb-tk database, Metaphlan3 and Metaphlan4.
 
-The scripts and tools for fungal, bacterial, and archaeal genomes specific to the soil environment downloaded for the main mock community can be found at https://github.com/roseedwin/Bacteria-Archaea-genomes-download and https://github.com/roseedwin/Fungal-genome-downloads
-
 And custom database used for Kraken is the GTDB-TK database released in 2022 April and Fungal genomes belonging to phylum Basidiomycota, Mucoromycota and Ascomycota as available in the NCBI assembly database on 20th January 2023
 
 #For Creating Soil Specific Mock Community
