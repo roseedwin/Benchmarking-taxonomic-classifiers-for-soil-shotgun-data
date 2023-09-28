@@ -1,0 +1,246 @@
+#To create a large repository of genome sequences belonging to bacteria and archaea, multiple sources were collated.
+
+#RefSoil database: The genome sequences and metadata was obtained from https://github.com/germs-lab/ref_soil/tree/master/script_download_refsoil
+#Since this contained only sequences of cultivated soil species we downloaded more sequences from NCBI database to obtain squences of non-cultured soil bacteria.
+
+#NCBI Nuccore database: Aquiring all Bacterial complete genome sequences from 'Nuccore' database in NCBI from RefSeq database whose isolation source is described as soil.
+
+if(!require(rentrez)){
+  install.packages("rentrez")
+  library(rentrez)
+}
+
+if(!require(tidyverse)){
+  install.packages("tidyverse")
+  library(tidyverse)
+}
+
+#The retmax was matched to the total id hits (tax$counts) to recover all the data available
+#Since a straightforward search cannot be done using Entrez to select for isolation source, it was done in two steps
+tax <-  entrez_search(db ="nuccore", term=("soil[ALL] AND complete genome[TITL] AND 
+                                                Refseq[KYWD] AND
+                                                Bacteria[FILT]") ,retmax=1869)
+
+sink(file="Bacteria_soil.csv")
+for (i in tax$ids) {
+query <- entrez_summary(db ="nuccore" , id=paste(i))  
+
+if(is.character(query$organism)==T)  
+{id <-extract_from_esummary(query, c("caption","accessionversion","taxid","title","organism", "strain","sourcedb","uid", "genome", "subname"))
+print(knitr::kable(t(id), row.names=NA,escape=FALSE))
+}}
+sink(file=NULL)
+
+
+metadata <- read.csv("Bacteria_soil.csv", header=T, sep = "|")
+metadata <- metadata[- grep("title", metadata$title),]  
+metadata <- metadata[- grep(":-----", metadata$taxid),]  
+metadata <- metadata[,2:11]
+metadata$subname<-gsub("&#124","",as.character(metadata$subname))
+
+metadata_filtered <- metadata %>% filter(grepl('soil|Soil', subname))
+
+metadata_bacteria <- metadata_filtered %>%
+  add_column(isolation_source = "Soil")
+
+metadata_bacteria <- metadata_bacteria[!duplicated(metadata_bacteria),]
+
+###RETRIEVE THE GENOME SEQUENCES #######
+dir.create("Bacteria_FASTA")
+
+uid = metadata_bacteria$uid
+for (X in uid) {
+  
+  tax <-  entrez_search(db ="nuccore", term=paste(X, "[UID]", sep=""))
+  tax$ids
+  
+  for (i in tax$ids)
+  {
+    query <- entrez_summary(db ="nuccore" , id=paste(i)) 
+    fasta_file <- entrez_fetch(db="nuccore", id=paste(i), rettype="fasta")
+    write(fasta_file, file=paste("Bacteria_FASTA/",query$accessionversion,".fasta", sep=""))
+  }
+}
+
+#A total of 1750 different bacterial strains obtained
+
+#Upon checking we understand that the accession numbers of RefSoil data are not matched with the obtained data,
+#hence they can be added to enrich the bacterial database
+################################################################################
+
+#ATTAINING METADATA FOR THE REFSOIL BACTERIAL HITS
+
+#Create an empty file and copy all the accession numbers of RefSoil
+file.create("accession.csv")
+
+#I want to pull the same metadata for the RefSoil data
+
+accession_ids <- read.csv("accession.csv", header = T)
+accession_id  = accession_ids$id
+
+sink(file="RefSoil_bacteria_metadata.csv")
+for (X in accession_id) {
+  
+  query <- entrez_summary(db ="nuccore" , id=paste(X, sep=" "))  
+  
+  if(is.character(query$organism)==T)  
+  {id <-extract_from_esummary(query,  c("caption","accessionversion","taxid","title","organism", "strain","sourcedb","uid", "genome", "subname"))
+  print(knitr::kable(head(t(id)), row.names=FALSE, escape=FALSE))
+  
+  }
+}
+sink(file=NULL)
+
+metadata <- read.csv("RefSoil_bacteria_metadata.csv", header=T, sep = "|")
+metadata <- metadata[- grep("title", metadata$title),]  
+metadata <- metadata[- grep(":-----", metadata$taxid),]  
+metadata <- metadata[,2:11]
+metadata$subname<-gsub("&#124","",as.character(metadata$subname))
+
+metadata <- metadata[!apply(metadata == "", 1, all),]
+
+write.csv(metadata,"Bacteria_RefSoil_metadata.csv")
+
+###### PULL OUT TAXONOMIC PROFILE AND STORE METADATA
+if(!require(taxize)){
+  install.packages("taxize")
+  library(taxize)
+}
+if(!require(tibble)){
+  install.packages("tibble")
+  library(tibble)
+}
+
+library(tidyr)
+library(dplyr)
+
+metadata_bacteria <- read.csv("consolidated_metadD_bacteria.csv")
+
+species <- data.frame(species=as.character(c(metadata_bacteria$organism[c(1:1626)])))
+
+taxize_class <- taxize::classification(species$species, db="ncbi")
+
+Tax <-do.call(rbind.data.frame,taxize_class)
+Tax <- tibble::rownames_to_column(Tax, "organism")
+
+write.csv(Tax,"Tax_done.csv")
+
+Tax <-  read.csv("Tax.csv")
+
+Tax <- Tax %>% pivot_wider(names_from = rank, values_from = name)
+
+Tax <- Tax[,1:10]
+Tax <- select(Tax, -3)
+Tax <- apply(Tax,2,as.character)
+write.csv(Tax,"Tax_done.csv")
+
+strains_1279 <- read.csv("Tax_done.csv", header=T)
+Taxonomy <- read.csv("consolidated_metadD_bacteria.csv", header=T)
+Taxonomy <- Taxonomy[,1:12]
+
+results <-dplyr::full_join(Taxonomy, strains_1279,by ="organism")
+write.csv(results, "bacteria_taxonomy.csv")
+
+########### ARCHAEA
+#Only 26 hits if the RefSeq keyword is used
+
+tax <-  entrez_search(db ="nuccore", term=("soil[ALL] AND complete genome[TITL] AND Archaea[FILT]") ,retmax=65)
+
+sink(file="Archaea_soil.csv")
+for (i in tax$ids) {
+  query <- entrez_summary(db ="nuccore" , id=paste(i))  
+  
+  if(is.character(query$organism)==T)  
+  {id <-extract_from_esummary(query, c("caption","accessionversion","taxid","title","organism", "strain","sourcedb","uid", "genome", "subname"))
+  print(knitr::kable(t(id), row.names=NA,escape=FALSE))
+  }}
+sink(file=NULL)
+
+metadata <- read.csv("Archaea_soil.csv", header=T, sep = "|")
+metadata <- metadata[- grep("title", metadata$title),]  
+metadata <- metadata[- grep(":-----", metadata$taxid),]  
+metadata <- metadata[,2:11]
+metadata$subname<-gsub("&#124","",as.character(metadata$subname))
+
+metadata_filtered <- metadata %>% filter(grepl('soil|Soil', subname))
+
+metadata_archaea <- metadata_filtered %>%
+  add_column(isolation_source = "Soil")
+
+metadata_archaea <- metadata_archaea[!duplicated(metadata_archaea),]
+write.csv(metadata_archaea,"metadata_archaea.csv")
+#Total of 49 hits for Archaea
+# 26 after removing duplicates from insd
+
+#Upon checking we understand that the accession numbers of RefSoil Archeaea data are not matched with the obtained data,
+#hence they can be added to enrich the Archaeal database
+################################################################################
+
+#ATTAINING METADATA FOR THE REFSOIL ARCHAEAL HITS
+
+#Create an empty file and copy all the accession numbers of RefSoil
+file.create("accession.csv")
+
+#I want to pull the same metadata for the RefSoil data (34 hits)
+
+accession_ids <- read.csv("accession.csv", header = T)
+accession_id  = accession_ids$id
+
+sink(file="RefSoil_archaea_metadata.csv")
+for (X in accession_id) {
+  
+  query <- entrez_summary(db ="nuccore" , id=paste(X, sep=" "))  
+  
+  if(is.character(query$organism)==T)  
+  {id <-extract_from_esummary(query,  c("caption","accessionversion","taxid","title","organism", "strain","sourcedb","uid", "genome", "subname"))
+  print(knitr::kable(head(t(id)), row.names=FALSE, escape=FALSE))
+  
+  }
+}
+sink(file=NULL)
+
+metadata <- read.csv("RefSoil_archaea_metadata.csv", header=T, sep = "|")
+metadata <- metadata[- grep("title", metadata$title),]  
+metadata <- metadata[- grep(":-----", metadata$taxid),]  
+metadata <- metadata[,2:11]
+metadata$subname<-gsub("&#124","",as.character(metadata$subname))
+
+metadata <- metadata[!apply(metadata == "", 1, all),]
+
+write.csv(metadata,"Archaea_RefSoil_metadata.csv")
+
+
+REntrez_data <- read.csv("metadata_archaea.csv", header=T)
+RefSoil_data <- read.csv("Archaea_RefSoil_metadata.csv", header=T)
+RefSoil_data <- RefSoil_data[,2:11]
+
+results <- dplyr::full_join(RefSoil_data, REntrez_data, by ="accessionversion", copy=T)
+write.csv(results, "metadata_archaea.csv")
+
+#60 hits in total for archaea
+
+metadata_archaea <- read.csv("metadata_archaea.csv")
+
+species <- data.frame(species=as.character(c(metadata_archaea$organism[c(1:50)])))
+
+taxize_class <- taxize::classification(species$species, db="ncbi")
+
+Tax <-do.call(rbind.data.frame,taxize_class)
+Tax <- tibble::rownames_to_column(Tax, "organism")
+
+write.csv(Tax,"Tax_done.csv")
+
+Tax <-  read.csv("Tax_done.csv")
+
+Tax <- Tax %>% pivot_wider(names_from = rank, values_from = name)
+
+Tax <- Tax[,1:10]
+Tax <- select(Tax, -2,-4)
+Tax <- apply(Tax,2,as.character)
+write.csv(Tax,"Tax_done.csv")
+
+species_50 <- read.csv("Tax_done.csv", header=T)
+metadata_archaea <- read.csv("metadata_archaea.csv", header=T)
+
+results <-dplyr::full_join(metadata_archaea, species_50,by ="organism")
+write.csv(results, "metadata_archaea_final.csv")
