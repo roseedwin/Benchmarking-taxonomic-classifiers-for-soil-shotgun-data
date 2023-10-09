@@ -1,0 +1,589 @@
+#This script contains codes for stacked bar plot and Bray plots
+
+#Real_data analysis
+library(dplyr)
+library(ggplot2)
+library(RColorBrewer)
+################################################################################################
+#DATA CLEANING: Kraken_gtdb Results (Phylum level)
+################################################################################################
+
+KG_results <- read.table("Data/realdata_phylum_custom.Kraken.txt", header =FALSE, sep = "\t")
+
+KG_results <- KG_results[,-c(3:7)]
+
+colnames(KG_results)[1] <- "sample"
+colnames(KG_results)[2] <- "phylum"
+colnames(KG_results)[3] <- "abundance"
+
+KG_results['Classifier'] = 'Kraken_gtdb'
+
+KG_results$abundance <- KG_results$abundance * 100
+
+metadata <- read.table("Data/realdata_metadata.txt", header =TRUE, sep = ",")
+metadata <-  metadata[-c(5:7),]
+
+metadata2 <- metadata[,c(1,32)]
+metadata2 <- metadata2 %>%
+  rename(sample = Run,
+         sample_name = Sample.Name)
+
+result <- inner_join(metadata2, KG_results, by = "sample")
+
+#Change names to new phylum names
+######
+#This data was obtained from NCBI
+
+name_mapping <- c(
+  "Bacteroidetes" = "Bacteroidota",
+  "Planctomycetes" = "Planctomycetota",
+  "Acidobacteria" = "Acidobacteriota",
+  "Actinobacteria" = "Actinomycetota",
+  "Aquificae" = "Aquificota",
+  "Armatimonadetes" = "Armatimonadota",
+  "Balneolaeota" = "Balneolota",
+  "Caldiserica" = "Caldisericota",
+  "Calditrichaeota" = "Calditrichota",
+  "Chlamydiae" = "Chlamydiota",
+  "Chlorobi" = "Chlorobiota",
+  "Chloroflexi" = "Chloroflexota",
+  "Chrysiogenetes" = "Chrysiogenota",
+  "Crenarchaeota" = "Thermoproteota",
+  "Deferribacteres" = "Deferribacterota",
+  "Deinococcus-Thermus" = "Deinococcota",
+  "Dictyoglomi" = "Dictyoglomota",
+  "Elusimicrobia" = "Elusimicrobiota",
+  "Fibrobacteres" = "Fibrobacterota",
+  "Firmicutes" = "Bacillota",
+  "Fusobacteria" = "Fusobacteriota",
+  "Gemmatimonadetes" = "Gemmatimonadota",
+  "Ignavibacteriae" = "Ignavibacteriota",
+  "Kiritimatiellaeota" = "Kiritimatiellota",
+  "Lentisphaerae" = "Lentisphaerota",
+  "Nitrospinae" = "Nitrospinota",
+  "Nitrospirae" = "Nitrospirota",
+  "Proteobacteria" = "Pseudomonadota",
+  "Rhodothermaeota" = "Rhodothermota",
+  "Spirochaetes" = "Spirochaetota",
+  "Synergistetes" = "Synergistota",
+  "Tenericutes" = "Mycoplasmatota",
+  "Thaumarchaeota" = "Nitrososphaerota",
+  "Thermodesulfobacteria" = "Thermodesulfobacteriota",
+  "Thermotogae" = "Thermotogota",
+  "Verrucomicrobia" = "Verrucomicrobiota",
+  "Epsilonproteobacteria" = "Campylobacterota",
+  "Thermomicrobia" = "Thermomicrobiota",
+  "Oligoflexia" = "Bdellovibrionota",
+  "Deltaproteobacteria" = "Desulfobacterota"
+)
+
+# Update the Phylum column in result2 dataframe
+result <- result %>%
+  mutate(phylum = ifelse(phylum %in% names(name_mapping), name_mapping[phylum], phylum))
+#########
+
+# Identify the top 10 phyla by total abundance
+top_phyla <- result %>%
+  group_by(phylum) %>%
+  summarise(total_abundance = sum(abundance, na.rm = TRUE)) %>%
+  arrange(-total_abundance) %>%
+  head(14) %>%
+  pull(phylum)
+print(top_phyla)
+# Label all other phyla as "Remainder"
+result$phylum <- ifelse(result$phylum %in% top_phyla, result$phylum, "Remainder")
+# Specifying the order
+desired_order <- c("Podsol_O", "Podsol_A", "Cambisol_O", "Cambisol_A","Cambisol_B", "Stagnosol_O", "Stagnosol_A")
+
+# Convert the sample_name column to a factor with the desired order
+result$sample_name <- factor(result$sample_name, levels = desired_order)
+
+# Summarize data for plotting
+plot_data <- result %>%
+  group_by(sample_name, phylum) %>%
+  summarise(total_abundance = sum(abundance, na.rm = TRUE))
+
+set3_colors <- brewer.pal(12, "Set3")
+phylum_colors <- c(
+  "Planctomycetota" = set3_colors[1],
+  "Actinomycetota" = set3_colors[2],
+  "Chloroflexota" = set3_colors[9],
+  "Acidobacteriota"  = "lightpink3",
+  "Pseudomonadota" = set3_colors[4],
+  "Verrucomicrobiota"  = set3_colors[5],
+  "Bacillota" = "#DDCC77",
+  "Bacteroidota"  = set3_colors[10],
+  "Euryarchaeota" = set3_colors[3],
+  "Ascomycota"  = set3_colors[11],
+  "Remainder" = "azure4",
+  "Basidiomycota" = set3_colors[6],
+  "Nitrospirota" = set3_colors[7],
+  "Candidatus Calescamantes" = set3_colors[8],
+  "Gemmatimonadota" = "#BD925A"
+)
+extended_palette <- c(set3_colors, "#A6CEE3",  "#FC8C90", "#B2DF8A") # Add more colors as needed
+
+# Define the desired order of phyla for the legend
+legend_order <- c(
+  "Planctomycetota",
+  "Actinomycetota" ,
+  "Chloroflexota" ,
+  "Acidobacteriota" ,
+  "Pseudomonadota",
+  "Verrucomicrobiota",
+  "Bacillota" ,
+  "Bacteroidota" ,
+  "Euryarchaeota",
+  "Ascomycota" ,
+  "Remainder",
+  "Basidiomycota" ,
+  "Nitrospirota",
+  "Candidatus Calescamantes",
+  "Gemmatimonadota")  # Replace ... with the rest of the phyla in the desired order
+
+# Increase the size of labels, titles, and legends
+updated_plot <- ggplot(plot_data, aes(x = sample_name, y = total_abundance, fill = phylum)) +
+  geom_bar(stat = "identity", position = "stack", color = "black") +
+  labs(title = "Shotgun-seq dataset: custom Kraken",
+       x = NULL,
+       y = "Relative Abundance (%)",
+       fill = "Phylum") + # Directly setting the legend title for 'fill' aesthetic
+  theme_gray() + # Switched to theme_gray for a gray background
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust=1,  size=20, color = "black"), # Bold and increased size for x axis values
+    axis.text.y = element_text(face="bold", size=20, color ="black"), # Bold and increased size for y axis values
+    plot.title = element_text(size=25, hjust = 0.5), # Bold and increased size for title
+    axis.title.y = element_text(face="bold", size=20), # Bold and increased size for y axis label
+    legend.key.size = unit(1, "cm"),
+    legend.title = element_text(face="bold", size=20), # Bold and increased size for legend title
+    legend.text = element_text(size=15),
+    legend.spacing.y = unit(0.5, "cm") # Black color for x and y axes
+  ) +
+  scale_fill_manual(values = phylum_colors,breaks = legend_order)
+
+# Display the updated plot
+print(updated_plot)
+
+# Save the plot to a file
+ggsave(filename = "Phylum_stackedbarplot.png", plot = updated_plot, width = 10, height = 10, dpi = 600)
+
+
+###################### Supplementary_Figure_7
+#Real_data analysis
+library(dplyr)
+library(reshape)
+library(data.table)
+################################################################################################
+#DATA CLEANING: Kraken_gtdb Results (Sp level) with cut off
+################################################################################################
+
+KG_results <- read.table("Data/realdata_species_Kraken_gtdb.txt", header =FALSE, sep = "\t", fill = TRUE, quote = "")
+
+colnames(KG_results)[1] <- "sample"
+colnames(KG_results)[2] <- "species_name"
+colnames(KG_results)[3] <- "taxid"
+colnames(KG_results)[8] <- "abundance"
+
+KG_results['Classifier'] = 'Kraken_gtdb'
+KG_results$abundance <- KG_results$abundance * 100
+KG_results$species_name <- gsub("[^A-Za-z0-9 ]", "", KG_results$species_name)
+KG_results$species <- sapply(strsplit(as.character(KG_results$species_name), " "), function(x) paste(x[1:2], collapse = " "))
+
+summed_df <- KG_results %>%
+  group_by(sample, species) %>%
+  summarise(abundance = sum(abundance, na.rm = TRUE))
+
+# Ensure species and sample_name are columns and not grouping variables
+KG_results <- ungroup(summed_df)
+KG_results <- KG_results %>%
+  filter(abundance >= 0.001)
+KG_results['Classifier'] = 'Kraken_gtdb'
+################################################################################################
+#DATA CLEANING: Kraken Results (Sp level)
+################################################################################################
+
+KR_results <- read.table("Data/realdata_species_Kraken.txt", header =FALSE, sep = "\t", fill = TRUE, quote = "")
+colnames(KR_results)[1] <- "sample"
+colnames(KR_results)[2] <- "species_name"
+colnames(KR_results)[3] <- "taxid"
+colnames(KR_results)[8] <- "abundance"
+
+KR_results['Classifier'] = 'Kraken'
+KR_results$abundance <- KR_results$abundance * 100
+KR_results$species_name <- gsub("[^A-Za-z0-9 ]", "", KR_results$species_name)
+
+KR_results$species <- sapply(strsplit(as.character(KR_results$species_name), " "), function(x) paste(x[1:2], collapse = " "))
+
+summed_df <- KR_results %>%
+  group_by(sample, species) %>%
+  summarise(abundance = sum(abundance, na.rm = TRUE))
+
+# Ensure species and sample_name are columns and not grouping variables
+KR_results <- ungroup(summed_df)
+KR_results <- KR_results %>%
+  filter(abundance >= 0.005)
+KR_results['Classifier'] = 'Kraken'
+################################################################################################
+#DATA CLEANING: Kaiju Results (Sp level)
+################################################################################################
+
+KJ_results <- read.table("Data/realdata_species_Kaiju.tsv", header =TRUE, sep = "\t", fill = TRUE, quote = "")
+
+colnames(KJ_results)[1] <- "sample"
+colnames(KJ_results)[5] <- "species_name"
+colnames(KJ_results)[2] <- "abundance"
+colnames(KJ_results)[3] <- "taxid"
+
+# Identify which rows have non-numeric values in the abundance column
+problem_rows <- KJ_results[!grepl("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", KJ_results$abundance), ]
+# Display these rows
+head(problem_rows)
+# Filter out the problem rows
+KJ_results <- KJ_results[KJ_results$sample != "file", ]
+# Check if the problematic rows are removed
+head(KJ_results)
+
+KJ_results$abundance <- as.numeric(KJ_results$abundance)
+KJ_results$abundance <- KJ_results$abundance * 100
+
+KJ_results$sample <- gsub("TAXONOMY/KAIJU/", "", KJ_results$sample)  # remove "TAXONOMY/KAIJU/"
+KJ_results$sample <- gsub("_out", "", KJ_results$sample)             # remove "_out"
+KJ_results$species_name <- gsub("[^A-Za-z0-9 ]", "", KJ_results$species_name)
+KJ_results$species <- sapply(strsplit(as.character(KJ_results$species_name), " "), function(x) paste(x[1:2], collapse = " "))
+
+summed_df <- KJ_results %>%
+  group_by(sample, species) %>%
+  summarise(abundance = sum(abundance, na.rm = TRUE))
+
+
+# Ensure species and sample_name are columns and not grouping variables
+KJ_results <- ungroup(summed_df)
+KJ_results['Classifier'] = 'Kaiju'
+KJ_results <- KJ_results %>%
+  filter(abundance >= 0.001)
+
+output <-  rbind(KJ_results,KR_results,KG_results)
+
+metadata <- read.table("Data/realdata_metadata.txt", header =TRUE, sep = ",")
+metadata <-  metadata[-c(5:7),]
+
+metadata2 <- metadata[,c(1,32)]
+metadata2 <- metadata2 %>%
+  dplyr::rename(sample = Run,
+         sample_name = Sample.Name)
+
+result <- inner_join(metadata2, output, by = "sample")
+
+result2 <- result %>%
+  select(-1) %>%
+  mutate(sample_name = paste(sample_name, Classifier, sep = "."))
+
+c <- dcast(result2, species ~ sample_name, value.var = 'abundance', fun.aggregate = sum)
+
+samp2 <- c[,-1]
+rownames(samp2) <- c[,1]
+
+mat <- as.matrix(samp2[, -1])
+
+write.csv(mat,"mat_sp_NMDSrealdata.csv")
+
+#######NMDS
+
+#load necessary package
+library(vegan)
+library(ggplot2)
+library(ggthemes)
+library(RColorBrewer)
+library(wesanderson)
+data <- read.csv("mat_sp_NMDSrealdata.csv", row.names = 1)
+head(data)
+data[is.na(data)] <- 0
+data <- t(data)
+
+meta.mds.sl <- metaMDS(data, distance = "bray")
+plot(meta.mds.sl$points)
+pdf("myplot.pdf", width=7, height=5)
+plot(meta.mds.sl$points)
+dev.off()
+
+write.csv(meta.mds.sl$points, "mds_spec_realdatabray_sp.csv")
+
+df <- read.csv("mds_spec_realdatabray_sp.csv", header = TRUE)
+df <- df %>%
+  separate(X, into = c("sample_name", "tool"), sep = "\\.")
+
+df <- df %>%
+  mutate(tool = ifelse(tool == "Kraken_gtdb", "custom.Kraken", tool))
+
+permanova_result <- adonis2(data ~ sample_name + tool, data = df, permutations = 999)
+head(permanova_result,3)
+
+# Print PERMANOVA results
+print(permanova_result)
+# Extract R-squared and p-value for "tool" term
+r2_tool <- permanova_result$R2[2]
+p_value_tool <- permanova_result$Pr[2]
+
+# Format R-squared as a string with two decimal places
+r2_label <- paste0("PERMANOVA: R", "\u00B2", " = ", format(round(r2_tool, 2), nsmall = 2))
+
+# Format p-value with significance stars
+p_value_label <- ifelse(p_value_tool < 0.001, "p < 0.001 ***",
+                        ifelse(p_value_tool < 0.01, paste0("p-value = ", format(p_value_tool, nsmall = 3), " **"),
+                               ifelse(p_value_tool < 0.05, paste0("p-value = ", format(p_value_tool, nsmall = 2), " *"),
+                                      paste0("p-value = ", format(p_value_tool, nsmall = 2)))))
+
+
+# Print the labels
+cat(r2_label, "\n")
+cat(p_value_label, "\n")
+
+classifier_colors <- c(
+  "Kraken" = "#798234",
+  "custom.Kraken" = "#70A494",
+  "Kaiju" = "#BD925A"
+)
+
+classifier_colors <- c(
+  "Cambisol_A" = "#798234",
+  "Cambisol_B" = "darkolivegreen4",
+  "Cambisol_O" = "darkgreen",
+  "Podsol_A"  = "brown",
+  "Podsol_O" = "brown3",
+  "Stagnosol_A" = "darkgoldenrod2",
+  "Stagnosol_O" = "darkgoldenrod"
+)
+dev.off()
+shape_values <- c(21, 22, 23, 24, 25, 26, 27)
+### Plot the distance matrix with ggplot2 ###
+
+Sp <- ggplot(df, aes(MDS1, MDS2, color = sample_name, shape = tool, fill = sample_name)) +
+  theme_bw() +
+  theme(
+    legend.title = element_text(face = "bold", size = 12.5),
+    axis.title.x = element_text(face = "bold", size = 12.5),
+    axis.title.y = element_text(face = "bold", size = 12.5),
+    plot.title = element_text(face = "bold", size = 15),
+    legend.text = element_text(size = 12.5),
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 12.5),
+    axis.title = element_text(size = 12.5),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  theme(panel.background = element_rect(colour = "black")) +
+  ggtitle("Bray-Curtis MDS plot (coloured by sample site) species level") +
+  geom_point(size = 2.5, stroke = 0.8) +
+  scale_color_manual(values = classifier_colors, name = "Sample Name") +
+  scale_fill_manual(values = classifier_colors) +
+  scale_shape_manual(values = shape_values, name = "Classifier") +
+  stat_ellipse(aes(color = tool, fill = tool), level = 0.5, type = "t", show.legend = FALSE)
+
+# Update the plot
+Sp <- Sp +
+  geom_text(
+    aes(label = r2_label),
+    x = min(df$MDS1), y = max(df$MDS2),
+    hjust = 0, vjust = 1, 
+    size = 4,  color = "black"
+  ) +
+  geom_text(
+    aes(label = p_value_label),
+    x = min(df$MDS1), y = max(df$MDS2),  
+    hjust = 0, vjust = 3,
+    size = 4,  color = "black"
+  )
+print(Sp)
+
+ggsave("Species_level_bray.png", Sp, width = 10, height = 6, dpi = 300)
+################################################################################################
+
+
+################################################################################################
+######################################### GENUS LEVEL -Supplementary_Figure7b
+
+################################################################################################
+#DATA CLEANING: Kraken_gtdb Results (Genus level)
+################################################################################################
+
+KG_results <- read.table("Data/realdata_genus_Kraken_gtdb.txt", header =FALSE, sep = "\t", fill = TRUE)
+
+KG_results <- KG_results[,-c(3:7)]
+
+colnames(KG_results)[1] <- "sample"
+colnames(KG_results)[2] <- "genus"
+colnames(KG_results)[3] <- "abundance"
+
+KG_results['Classifier'] = 'Kraken_gtdb'
+KG_results$abundance <- KG_results$abundance * 100
+KG_results <- KG_results %>%
+  filter(abundance >= 0.001)
+################################################################################################
+#DATA CLEANING: Kraken Results (Genus level)
+################################################################################################
+
+KR_results <- read.table("Data/realdata_genus_Kraken.txt", header =FALSE, sep = "\t", fill = TRUE)
+
+KR_results <- KR_results[,-c(3:7)]
+
+colnames(KR_results)[1] <- "sample"
+colnames(KR_results)[2] <- "genus"
+colnames(KR_results)[3] <- "abundance"
+
+KR_results['Classifier'] = 'Kraken'
+KR_results$abundance <- KR_results$abundance * 100
+KR_results <- KR_results %>%
+  filter(abundance >= 0.001)
+################################################################################################
+#DATA CLEANING: Kaiju Results (Genus level)
+################################################################################################
+
+KJ_results <- read.table("Data/realdata_genus_Kaiju.tsv", header =TRUE, sep = "\t", fill = TRUE)
+
+KJ_results <- KJ_results[,-c(3:4)]
+
+colnames(KJ_results)[1] <- "sample"
+colnames(KJ_results)[3] <- "genus"
+colnames(KJ_results)[2] <- "abundance"
+
+KJ_results$abundance <- KJ_results$abundance * 100
+
+# Identify which rows have non-numeric values in the abundance column
+problem_rows <- KJ_results[!grepl("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$", KJ_results$abundance), ]
+# Display these rows
+head(problem_rows)
+# Filter out the problem rows
+KJ_results <- KJ_results[KJ_results$sample != "file", ]
+# Check if the problematic rows are removed
+head(KJ_results)
+
+KJ_results$sample <- gsub("TAXONOMY/KAIJU/", "", KJ_results$sample)  # remove "TAXONOMY/KAIJU/"
+KJ_results$sample <- gsub("_out", "", KJ_results$sample)             # remove "_out"
+
+KJ_results$abundance <- as.numeric(KJ_results$abundance)
+KJ_results['Classifier'] = 'Kaiju'
+KJ_results <- KJ_results %>%
+  filter(abundance >= 0.001)
+
+output <-  rbind(KJ_results,KR_results,KG_results)
+
+metadata <- read.table("Data/realdata_metadata.txt", header =TRUE, sep = ",")
+metadata <-  metadata[-c(5:7),]
+
+metadata2 <- metadata[,c(1,32)]
+metadata2 <- metadata2 %>%
+  dplyr::rename(sample = Run,
+         sample_name = Sample.Name)
+
+result <- inner_join(metadata2, output, by = "sample")
+
+result2 <- result %>%
+  mutate(sample_name = paste(sample_name, Classifier, sep = "."))  %>%
+  select(-c(1,5))
+
+c <- dcast(result2, genus ~ sample_name, value.var = 'abundance', fun.aggregate = sum)
+samp2 <- c[,-1]
+rownames(samp2) <- c[,1]
+
+mat <- as.matrix(samp2[, -1])
+
+write.csv(mat,"mat_gn_NMDSrealdata.csv")
+#######NMDS
+
+#load necessary package
+library(vegan)
+library(ggplot2)
+library(ggthemes)
+library(RColorBrewer)
+library(wesanderson)
+data <- read.csv("mat_gn_NMDSrealdata.csv", row.names = 1)
+head(data)
+data[is.na(data)] <- 0
+data <- t(data)
+
+meta.mds.sl <- metaMDS(data, distance = "bray")
+plot(meta.mds.sl$points)
+write.csv(meta.mds.sl$points, "mds_spec_realdatabray_gn.csv")
+
+df <- read.csv("mds_spec_realdatabray_gn.csv", header = TRUE)
+df <- df %>%
+  separate(X, into = c("sample_name", "tool"), sep = "\\.")
+
+df <- df %>%
+  mutate(tool = ifelse(tool == "Kraken_gtdb", "custom.Kraken", tool))
+
+# Assuming `original_data` is the matrix with your original data
+bray_dist_matrix <- vegdist(data, method = "bray")
+
+# Assuming `df` is a data frame with the `sample_name` and `tool` columns
+adonis_result <- adonis2(bray_dist_matrix ~ sample_name + tool, data = df)
+head(adonis_result,3)
+
+# Print PERMANOVA results
+print(adonis_result)
+# Extract R-squared and p-value for "tool" term
+r2_tool <- adonis_result$R2[2]
+p_value_tool <- adonis_result$Pr[2]
+
+# Format R-squared as a string with two decimal places
+r2_label <- paste0("PERMANOVA: R", "\u00B2", " = ", format(round(r2_tool, 2), nsmall = 2))
+
+# Format p-value with significance stars
+p_value_label <- ifelse(p_value_tool < 0.001, "p < 0.001 ***",
+                        ifelse(p_value_tool < 0.01, paste0("p-value = ", format(p_value_tool, nsmall = 3), " **"),
+                               ifelse(p_value_tool < 0.05, paste0("p-value = ", format(p_value_tool, nsmall = 2), " *"),
+                                      paste0("p-value = ", format(p_value_tool, nsmall = 2)))))
+
+
+
+classifier_colors <- c(
+  "Cambisol_A" = "#798234",
+  "Cambisol_B" = "darkolivegreen4",
+  "Cambisol_O" = "darkgreen",
+  "Podsol_A"  = "brown",
+  "Podsol_O" = "brown3",
+  "Stagnosol_A" = "darkgoldenrod2",
+  "Stagnosol_O" = "darkgoldenrod"
+)
+dev.off()
+shape_values <- c(21, 22, 23, 24, 25, 26, 27)
+### Plot the distance matrix with ggplot2 ###
+Sp <- ggplot(df, aes(MDS1, MDS2, color = sample_name, shape = tool, fill =  sample_name)) +
+  theme_bw() +
+  theme(
+    legend.title = element_text(face = "bold", size = 12.5),
+    axis.title.x = element_text(face = "bold", size = 12.5),
+    axis.title.y = element_text(face = "bold", size = 12.5),
+    plot.title = element_text(face = "bold", size = 15),
+    legend.text = element_text(size = 12.5),
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 12.5),
+    axis.title = element_text(size = 12.5),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  theme(panel.background = element_rect(colour = "black")) +
+  ggtitle("Bray-Curtis MDS plot (coloured by sample sites) genus level") +
+  geom_point(size = 2.5, stroke = 0.8) +
+  scale_color_manual(values = classifier_colors, name = "Sample Name") +
+  scale_fill_manual(values = classifier_colors) +
+  scale_shape_manual(values = shape_values, name = "Classifier") +
+  stat_ellipse(aes(color = tool, fill = tool), show.legend = FALSE)  # Ellipses for each tool
+
+# Update the plot
+Sp <- Sp +
+  geom_text(
+    aes(label = r2_label),
+    x = min(df$MDS1), y = max(df$MDS2),
+    hjust = 0, vjust = 1, # Justify text to top-left
+    size = 4,  color = "black"
+  ) +
+  geom_text(
+    aes(label = p_value_label),
+    x = min(df$MDS1), y = max(df$MDS2), # Adjust y to offset the second text from the first one
+    hjust = 0, vjust = 3,
+    size = 4,  color = "black"
+  )
+print(Sp)
+ggsave("Genus_level_bray.png", Sp, width = 10, height = 6, dpi = 300)
+
