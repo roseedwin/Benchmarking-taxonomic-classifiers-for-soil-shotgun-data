@@ -1,6 +1,5 @@
-#This script contains code for
-#Supplementary_Figure 4
-#Supplementary_Figure 5
+#This script contains code for creating pretty heatmaps for FP's and FN's at family level
+
 library(tidyverse)
 library(dplyr)
 
@@ -317,7 +316,7 @@ col_names_grob$x <- col_names_grob$x - unit(0.05, "npc")
 p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]] <- col_names_grob
 
 # Save the plot with the modified font size
-png(filename = "Heamap_FP.png", width = 10, height = 15, units = "in", res = 300)
+png(filename = "Heatmap_FP.png", width = 10, height = 15, units = "in", res = 300)
 grid.draw(p$gtable)
 dev.off()
 
