@@ -1,0 +1,312 @@
+#This has codes for
+#Figure 4a, 4b
+#Supplemetary_Table3a, 3b
+
+# Load required libraries
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(ggsignif)
+library(ggstatsplot)
+library(dunn.test)
+library(tibble)
+############ NMDS -Figure 4a
+new_directory <- "Figures"
+# Create the directory
+dir.create(new_directory)
+
+df_long <-  read.table("Data/insilico_Species_results.tsv", header =T,  sep="\t")
+df_long <-  df_long %>% separate(sample_name, into = c("sample_name", "run", "tool"), sep = "\\.")
+df_long2 <-   df_long %>%  group_by(species, sample_name, run, tool) %>%
+  summarise(rel.abundance = sum(abundance))
+
+df_long2$tool <- gsub("Kraken_gtdb", "Kraken.gtdb", df_long2$tool)
+
+observed <-  df_long2 %>% filter(tool != "insilico")
+observed1 <- observed %>%
+  filter(tool %in% c("Kaiju", "Kraken.gtdb", "Metaphlan3", "Metaphlan4")) %>%
+  filter(rel.abundance > 0.001) %>%
+  rename(observed = rel.abundance)
+
+observed2 <- observed %>%
+  filter(tool %in% c("Kraken", "Kraken22")) %>%
+  filter_at(vars(5), any_vars(.> 0.005)) %>%
+  rename(observed = rel.abundance)
+
+observed <- rbind(observed1, observed2)
+
+observed <-  observed %>%
+  select(species, tool, observed, sample_name, run) %>%
+  pivot_wider(names_from = tool, values_from = observed) %>%
+  mutate(across(everything(), ~replace(., is.na(.), 0)))
+
+expected <-  df_long2 %>% filter(tool == "insilico") %>%
+  rename(expected = rel.abundance) %>%
+  filter(expected != 0)
+
+observed_expected <- full_join( expected, observed)
+
+result <- observed_expected %>%
+  mutate(expected = ifelse(is.na(expected), 0, expected)) %>%
+  mutate(tool = ifelse(is.na(tool), "insilico", tool))  %>%
+  mutate(across(everything(), ~replace(., is.na(.), 0))) %>%
+  pivot_longer(cols = 5:11, names_to = "classifier", values_to = "abundance")
+
+result2 <- result %>%
+  select(-4) %>%
+  mutate(classifier = gsub("sample", "", classifier)) %>%
+  unite(lib_id,sample_name, run,  classifier, sep = "_")
+
+pivot_df <- result2 %>%
+  pivot_wider(names_from = lib_id, values_from = abundance)
+
+# Convert to matrix
+mat <- as.matrix(pivot_df[, -1])
+# Set row names
+rownames(mat) <- pivot_df$species
+mat[is.na(mat)] <- 0
+write.csv(mat,"mat_species.csv")
+
+#######NMDS
+
+#load necessary package
+library(vegan)
+library(ggplot2)
+library(ggthemes)
+library(RColorBrewer)
+library(wesanderson)
+data <- read.csv("mat_species.csv", row.names = 1)
+data <- t(data)
+map <- read.csv("Data/insilico_metadata.csv", row.names =1)
+
+meta.mds.sl <- metaMDS(data, distance = "bray")
+plot(meta.mds.sl$points)
+write.csv(meta.mds.sl$points, "mds_spec.csv")
+
+df <- read.csv("mds_spec.csv", header = TRUE)
+df2 <- df[, -1]
+rownames(df2) <- df[, 1]
+df3 <- df[, 1]
+df <- df2
+df <- merge(df, map, by = 'row.names')
+
+run <- df[, 4]
+sample <- df[, 5]
+tool <- df[, 6]
+
+df <- df %>%
+  filter(tool != "Kraken") %>%
+  mutate(tool = ifelse(tool == "Kraken22", "Kraken", tool)) %>%
+  mutate(tool = ifelse(tool == "Kraken.gtdb", "custom.Kraken", tool))
+df$tool <- gsub("Metaphlan", "MetaPhlAn", df$tool)
+
+# Move the rownames to a column called "rowname"
+data <- data %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "rowname")
+# Filter out rows where "rowname" ends with "_Kraken"
+data <- data %>%
+  filter(!grepl("_Kraken$", rowname))
+# Convert data back to a matrix
+mat1 <- as.matrix(data[, -1])  # Exclude the first column which contains the old rownames
+# Set the rownames of the new matrix
+rownames(mat1) <- data[, "rowname"]  # Use the old rownames stored in the first column of data
+# Calculate dissimilarity matrix using Bray-Curtis distance
+dissimilarity <- vegdist(mat1, method = "bray")
+# Perform PERMANOVA
+permanova_result <- adonis2(dissimilarity ~ tool, df, permutations = 999)
+
+# Print PERMANOVA results
+print(permanova_result)
+# Extract R-squared and p-value for "tool" term
+r2_tool <- permanova_result$R2[1]
+p_value_tool <- permanova_result$Pr[1]
+
+# Format R-squared as a string with two decimal places
+r2_label <- paste0("PERMANOVA: R", "\u00B2", " = ", format(round(r2_tool, 2), nsmall = 2))
+
+# Format p-value with significance stars
+p_value_label <- ifelse(p_value_tool < 0.001, "p < 0.001 ***",
+                        ifelse(p_value_tool < 0.01, paste0("p-value = ", format(p_value_tool, nsmall = 3), " **"),
+                               ifelse(p_value_tool < 0.05, paste0("p-value = ", format(p_value_tool, nsmall = 2), " *"),
+                                      paste0("p-value = ", format(p_value_tool, nsmall = 2)))))
+
+
+# Print the labels
+cat(r2_label, "\n")
+cat(p_value_label, "\n")
+
+classifier_colors <- c(
+  "Kraken" = "#DE8A5A"   ,
+  "custom.Kraken" = "#374E55FF",
+  "Kaiju" = "#80B1D3",
+  "MetaPhlAn3" = "#79AF97FF",
+  "MetaPhlAn4" =   "#B24745FF"    ,
+  "expected" = "#6A6599FF"
+)
+
+Sp <- ggplot(df, aes(MDS1, MDS2, label = tool)) +
+  theme_bw() +
+  theme(
+    legend.title = element_text(face = "bold", size = 11),
+    axis.title.x = element_text(face = "bold", size = 11),
+    axis.title.y = element_text(face = "bold", size = 11),
+    plot.title = element_text(face = "bold", size = 12),
+    legend.text = element_text(face = "bold", size = 11),
+    axis.text.y = element_text(face = "bold", size = 11),
+    axis.text.x = element_text(face = "bold", size = 11),
+    axis.title = element_text(size = 11),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  ) +
+  theme(panel.background = element_rect(colour = "black")) +
+  ggtitle("Bray-Curtis MDS plot (coloured by classifier)") +
+  geom_point(aes(color = tool, fill = tool, alpha = 1), size = 1.75) +
+  stat_ellipse(aes(color = tool, fill = tool, alpha = 1), show.legend = FALSE) +  # Added some transparency to the ellipse as well
+  scale_color_manual(values = classifier_colors, name = "Classifier") +
+  scale_fill_manual(values = classifier_colors, name = "Classifier") +
+  scale_alpha_continuous(guide = FALSE) +  # This will ensure alpha doesn't get its own legend
+  guides(color = guide_legend(
+    override.aes = list(shape = 19, size = 4, alpha = 1)),  # Setting alpha=1 for the legend
+    fill = guide_legend(
+      override.aes = list(shape = 19, size = 4, alpha = 1)))+ theme(legend.position = "bottom")
+
+# Update the plot
+Sp <- Sp +
+  geom_text(
+    aes(label = r2_label),
+    x = max(df$MDS1), y = min(df$MDS2),
+    hjust = 0.9, vjust = -0.6,
+    size = 4,  color = "black"
+  ) +
+  geom_text(
+    aes(label = p_value_label),
+    x = max(df$MDS1), y = min(df$MDS2),
+    hjust = 1, vjust = 0.9,
+    size = 4,  color = "black"
+  )
+print(Sp)
+
+ggsave("Figures/NMDS_Bray.png", Sp, width = 7, height = 5, dpi = 600)
+
+############ EUCLIDEAN- Figure 4b AND STATS -SUPPLEMENTARY TABLE 3a and 3b
+mat <- read.csv("mat_species.csv", row.names = 1)
+
+# Transpose the matrix so that species are columns and sample-classifier combinations are rows
+mat_t <- t(mat)
+# Calculate Euclidean distances
+distances <- vegdist(mat_t, method = "euclidean")
+
+# Convert to a data frame
+distances_df <- as.data.frame(as.matrix(distances))
+
+distances <- distances_df
+
+# Get the unique sample identifiers
+samples <- unique(gsub("_(expected|Kaiju|Kraken|Kraken.gtdb|Metaphlan3|Metaphlan4|Kraken22)$", "", colnames(distances)))
+
+# Get the classifiers
+classifiers <- c("Kaiju","Kraken22", "Kraken", "Kraken.gtdb", "Metaphlan3" ,"Metaphlan4")
+
+# Initialize a data frame to store the results
+classifier_distances <- data.frame()
+
+# Iterate over the samples
+for (sample in samples) {
+
+  # Iterate over the classifiers
+  for (classifier in classifiers) {
+
+    # Get the distance
+    distance <- distances[paste0(sample, "_", classifier), paste0(sample, "_expected")]
+
+    # Add the distance to the data frame
+    classifier_distances <- rbind(classifier_distances, data.frame(Sample = sample, Classifier = classifier, Distance = distance))
+  }
+}
+
+
+classifier_distances$Classifier <- gsub("Kraken.gtdb", "custom.Kraken", classifier_distances$Classifier)
+
+classifier_distances <- classifier_distances %>%
+  filter(Classifier != "Kraken") %>%
+  mutate(Classifier = ifelse(Classifier == "Kraken22", "Kraken", Classifier)) %>%
+  separate(Sample, into = c("sample_name", "Run"), sep = "_")
+
+classifier_distances <- classifier_distances %>%
+  mutate(Classifier = ifelse(Classifier == "Metaphlan3", "MetaPhlAn3", Classifier))%>%
+  mutate(Classifier = ifelse(Classifier == "Metaphlan4", "MetaPhlAn4", Classifier))
+
+# Order the levels of the Classifier variable
+classifier_distances$Classifier <- factor(classifier_distances$Classifier,
+                                          levels = c("custom.Kraken", "Kraken", "Kaiju", "MetaPhlAn4", "MetaPhlAn3"))
+
+plot <- ggbetweenstats(
+  data = classifier_distances,
+  x = Classifier,
+  y = Distance,
+  results.subtitle = FALSE,
+  type = "nonparametric",
+  p.adjust.method = "bonferroni",
+  pairwise.display = "none",
+  package          = "ggsci",
+  palette          = "default_jama",
+  centrality.point.args = list(size = 4, color = "darkred"),
+  boxplot.args = list(width = 0.7, alpha = 0.2, na.rm = TRUE),
+  violin.args = list(width = 1, alpha = 0.2, na.rm = TRUE),
+  centrality.label.args = list(size = 5.5, nudge_x = 0.45, nudge_y = -4, segment.linetype = 2,
+                               min.segment.length = 3),
+  point.args = list(position = ggplot2::position_jitterdodge(dodge.width = 0.6),
+                    alpha = 0.6, size = 5, stroke = 0, na.rm = TRUE),
+  ggsignif.args = list(textsize = 3, tip_length = 0.03, na.rm = TRUE,
+                       nudge_x = 0.5,
+                       nudge_y = 0.5),
+  ggplot.component = list(
+    theme_bw(),
+    theme(legend.title = element_text(face = "bold", size = 16),
+          axis.title.x = element_text(face = "bold", size = 22),
+          axis.title.y = element_text(face = "bold", size = 22),
+          plot.title = element_text(face = "bold", size = 22),
+          legend.text = element_text(face = "bold", size = 14),
+          axis.text.y = element_text(face = "bold", size = 18),
+          axis.text.x = element_text(face = "bold", size = 18),
+          plot.subtitle = element_text(face = "bold", size = 14),
+          plot.caption = element_text(face = "bold", size = 12),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          legend.position = "none"),
+    scale_fill_manual(values = classifier_colors)),
+  title = "Euclidean Distance from Expected for Each Classifier"
+)
+plot <- plot +scale_x_discrete(expand = c(0.05, 0.7))
+
+ggsave("Figures/Euclidean_distance.png", plot, width = 10, height = 12, dpi = 600)
+
+new_directory <- "Supplementary"
+# Create the directory
+dir.create(new_directory)
+
+library(rstatix)
+kruskal_eff_run <- classifier_distances %>%
+  group_by(Run) %>%
+  rstatix::kruskal_effsize(Distance ~ Classifier) %>%
+  rstatix::add_significance()
+
+kruskal_run <- classifier_distances %>%
+  group_by(Run) %>%
+  rstatix::kruskal_test(Distance ~ Classifier) %>%
+  rstatix::add_significance()
+
+# Remove duplicate columns from the second data frame
+kruskal_run_selected <- kruskal_run %>% select(-c(Run, `.y.`, n))
+
+# Bind the columns together
+kruskal_results <- bind_cols(kruskal_eff_run, kruskal_run_selected)
+write.csv(kruskal_results, "Supplementary/Supplemetary_Table3a.csv", row.names= FALSE)
+
+posthoc_run <- classifier_distances %>%
+  group_by(Run) %>%
+  rstatix::dunn_test(Distance ~ Classifier, p.adjust.method = "bonferroni", detailed =TRUE) %>%
+  rstatix::add_significance()
+write.csv(posthoc_run, "Supplementary/Kruskal_results.csv", row.names= FALSE)
+
