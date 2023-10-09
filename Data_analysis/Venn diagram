@@ -1,0 +1,408 @@
+#This has codes for
+#Figure 5, Supplementary_Figure1d, Supplementary_Figure3
+#Spplemetary_Table4
+
+library(tidyverse)
+library(dplyr)
+
+df_long <-  read.table("Data/insilico_Family_results.tsv", header =T,  sep="\t")
+df_long <-  df_long %>% separate(sample_name, into = c("sample_name", "run", "tool"), sep = "\\.")
+df_long2 <-   df_long %>%  group_by(family, sample_name, run, tool) %>%
+  summarise(rel.abundance = sum(abundance))
+df_long2$tool <- gsub("Kraken_gtdb", "Kraken.gtdb", df_long2$tool)
+
+expected <-  df_long2 %>% filter(tool == "insilico") %>%  #filter everything insilico
+  rename(expected = rel.abundance)  #rename rel.abundance as expected
+expected <-  expected %>% distinct()
+
+observed <-  df_long2 %>% filter(tool != "insilico")
+observed <-  observed %>% filter(tool != "Metaphlan3")
+observed <-  observed %>% filter(tool != "Kraken")
+observed1 <- observed %>%
+  filter(tool %in% c("Kaiju", "Kraken.gtdb", "Metaphlan4")) %>%
+  filter(rel.abundance > 0.001) %>%
+  rename(observed = rel.abundance)
+
+observed2 <- observed %>%
+  filter(tool %in% c("Kraken", "Kraken22")) %>%
+  filter_at(vars(5), any_vars(.> 0.005)) %>%
+  rename(observed = rel.abundance)
+
+observed <- rbind(observed1, observed2)
+
+#Processing each tool differently
+KJ_observed <-  subset(observed, tool == "Kaiju")
+KJ_observed$threshold <- "0.001"
+KJ_observed <-  KJ_observed %>%
+  select(family, tool,threshold, observed, sample_name, run) %>%
+  pivot_wider(names_from = threshold, values_from = observed) %>%
+  mutate(across(everything(), ~replace(., is.na(.), 0)))
+
+result <- full_join(KJ_observed, expected, by = c("run", "sample_name", "family"))
+
+# Fill NA values in tool.x with "Kaiju"
+result$tool.x <- ifelse(is.na(result$tool.x), "Kaiju", result$tool.x)
+# Fill NA values in tool.y with "insilico"
+result$tool.y <- ifelse(is.na(result$tool.y), "insilico", result$tool.y)
+# Replace values in the specified columns
+result[, c( "0.001","expected")] <-
+  ifelse(result[, c("0.001",  "expected")] > 0, "present", "absent")
+df_longer.KJ <- result %>%
+  pivot_longer(cols = 5, names_to = "threshold", values_to = "observed") %>%
+  select(family, tool.x, sample_name, run, expected, threshold, observed)  %>%
+  mutate(expected = ifelse(is.na(expected) == T , "absent", expected)) %>%
+  mutate(observed = ifelse(is.na(observed) == T , "absent", observed))
+
+MP4_observed <- subset(observed, tool == "Metaphlan4")
+MP4_observed$threshold <-  "0.001"
+MP4_observed <-  MP4_observed %>%
+  select(family, tool,threshold, observed, sample_name, run) %>%
+  pivot_wider(names_from = threshold, values_from = observed) %>%
+  mutate(across(everything(), ~replace(., is.na(.), 0)))
+
+result <- full_join(MP4_observed, expected, by = c("run", "sample_name", "family"))
+# Fill NA values in tool.x with "Metaphlan3"
+result$tool.x <- ifelse(is.na(result$tool.x), "Metaphlan4", result$tool.x)
+# Fill NA values in tool.y with "insilico"
+result$tool.y <- ifelse(is.na(result$tool.y), "insilico", result$tool.y)
+# Replace values in the specified columns
+result[, c( "0.001","expected")] <-
+  ifelse(result[, c("0.001",  "expected")] > 0, "present", "absent")
+df_longer.MP4 <- result %>%
+  pivot_longer(cols = 5, names_to = "threshold", values_to = "observed") %>%
+  select(family, tool.x, sample_name, run, expected, threshold, observed)  %>%
+  mutate(expected = ifelse(is.na(expected) == T , "absent", expected)) %>%
+  mutate(observed = ifelse(is.na(observed) == T , "absent", observed))
+
+KR_observed <-  subset(observed, tool == "Kraken22")
+KR_observed$threshold <- "0.001"
+KR_observed <-  KR_observed %>%
+  select(family, tool,threshold, observed, sample_name, run) %>%
+  pivot_wider(names_from = threshold, values_from = observed) %>%
+  mutate(across(everything(), ~replace(., is.na(.), 0)))
+
+result <- full_join(KR_observed, expected, by = c("run", "sample_name", "family"))
+# Fill NA values in tool.x with "Kraken"
+result$tool.x <- ifelse(is.na(result$tool.x), "Kraken22", result$tool.x)
+# Fill NA values in tool.y with "insilico"
+result$tool.y <- ifelse(is.na(result$tool.y), "insilico", result$tool.y)
+# Replace values in the specified columns
+result[, c( "0.001","expected")] <-
+  ifelse(result[, c("0.001",  "expected")] > 0, "present", "absent")
+df_longer.KR <- result %>%
+  pivot_longer(cols = 5, names_to = "threshold", values_to = "observed") %>%
+  select(family, tool.x, sample_name, run, expected, threshold, observed)  %>%
+  mutate(expected = ifelse(is.na(expected) == T , "absent", expected)) %>%
+  mutate(observed = ifelse(is.na(observed) == T , "absent", observed))
+
+KG_observed <-  subset(observed, tool == "Kraken.gtdb")
+KG_observed$threshold <- "0.001"
+KG_observed <-  KG_observed %>%
+  select(family, tool,threshold, observed, sample_name, run) %>%
+  pivot_wider(names_from = threshold, values_from = observed) %>%
+  mutate(across(everything(), ~replace(., is.na(.), 0)))
+
+
+result <- full_join(KG_observed, expected, by = c("run", "sample_name", "family"))
+# Fill NA values in tool.x with "Kraken.gtdb"
+result$tool.x <- ifelse(is.na(result$tool.x), "Kraken.gtdb", result$tool.x)
+# Fill NA values in tool.y with "insilico"
+result$tool.y <- ifelse(is.na(result$tool.y), "insilico", result$tool.y)
+# Replace values in the specified columns
+result[, c( "0.001","expected")] <-
+  ifelse(result[, c("0.001",  "expected")] > 0, "present", "absent")
+df_longer.KG <- result %>%
+  pivot_longer(cols = 5, names_to = "threshold", values_to = "observed") %>%
+  select(family, tool.x, sample_name, run, expected, threshold, observed)  %>%
+  mutate(expected = ifelse(is.na(expected) == T , "absent", expected)) %>%
+  mutate(observed = ifelse(is.na(observed) == T , "absent", observed))
+
+#Pool all the tools together
+observed_expected <-  rbind(df_longer.KG,df_longer.KJ,df_longer.MP4, df_longer.KR) %>%
+  rename(tool = tool.x)
+observed_expected <- observed_expected[,-c(6)]
+
+unique(observed_expected$tool)
+
+observed_expected2 <- observed_expected %>%
+  mutate(tool = factor(tool, levels =c("Kraken22", "Kraken.gtdb", "Kaiju",  "Metaphlan4"))) %>%
+  mutate(run =factor(run, levels = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"))) %>%
+  mutate(expected=factor(expected, levels=c("present", "absent"))) %>%
+  mutate(observed=factor(observed, levels=c("present", "absent"))) %>%
+  unite(lib_id, c("sample_name", "run", "tool"), sep ="_") %>%
+  mutate(lib_id=as.factor(lib_id)) %>%
+  group_by(lib_id) %>%
+  mutate(
+    result = case_when(
+      observed == "present" & expected == "present" ~ "TP",
+      observed == "absent" & expected == "present" ~ "FN",
+      observed == "present" & expected == "absent" ~ "FP",
+      TRUE ~ "TN"  # This accounts for observed "absent" & expected "absent"
+    )
+  ) %>% distinct()
+
+observed_expected3 <- observed_expected2%>% separate(lib_id, into = c("sample_name", "run", "tool"), sep = "\\_")
+
+#CHI-SQUARED TEST
+chisq <- observed_expected3 %>%
+  filter(result == "TP") %>%
+  group_by( tool) %>%
+  count(family, sort = TRUE) %>%
+  pivot_wider(names_from = "tool", values_from = "n") %>%
+  tibble::column_to_rownames(.,var="family")
+chisq[is.na(chisq)] <- 0
+
+chisq.test(chisq)
+#tested the same way for others like FP, FN, TN and made the table for Chisq test
+# This is Supplementary-Table 4
+
+library(VennDiagram)
+####################################
+########## FOR FALSE-POSITIVES
+####################################
+
+# Step 1: Extract FPs for Each Tool
+
+# Filter for FPs from Kraken.gtdb
+kraken_gtdb_FP <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Kraken.gtdb") & result == "FP") %>%
+  pull(family)
+
+# Filter for FPs from Kaiju
+kaiju_FP <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Kaiju") & result == "FP") %>%
+  pull(family)
+
+# Filter for FPs from Kraken22
+kraken22_FP <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Kraken") & !str_detect(lib_id, "Kraken.gtdb") & result == "FP") %>%
+  pull(family)
+
+# Filter for FPs from Metaphlan4
+metaphlan4_FP <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Metaphlan4") & result == "FP") %>%
+  pull(family)
+
+# Step 2: Create Lists of FPs for Each Tool
+# (This step is actually combined in Step 1 by using `pull(family)` to directly create lists)
+
+# Correct intersections for three or more sets
+n123 <- length(intersect(intersect(kraken_gtdb_FP, kaiju_FP), kraken22_FP))
+n124 <- length(intersect(intersect(kraken_gtdb_FP, kaiju_FP), metaphlan4_FP))
+n134 <- length(intersect(intersect(kraken_gtdb_FP, kraken22_FP), metaphlan4_FP))
+n234 <- length(intersect(intersect(kaiju_FP, kraken22_FP), metaphlan4_FP))
+n1234 <- length(intersect(intersect(intersect(kraken_gtdb_FP, kaiju_FP), kraken22_FP), metaphlan4_FP))
+
+
+# Now plot the Venn diagram
+venn.plot <- draw.quad.venn(
+  category1 = "Kaiju",
+  category2 = "Kraken22",
+  category3 = "Kraken.gtdb",
+  category4 = "Metaphlan4",
+  area1 = length(unique(kaiju_FP)),
+  area2 = length(unique(kraken22_FP)),
+  area3 = length(unique(kraken_gtdb_FP)),
+  area4 = length(unique(metaphlan4_FP)),
+  n12 = length(intersect(kaiju_FP, kraken22_FP)),
+  n13 = length(intersect(kaiju_FP, kraken_gtdb_FP)),
+  n14 = length(intersect(kaiju_FP, metaphlan4_FP)),
+  n23 = length(intersect(kraken22_FP, kraken_gtdb_FP)),
+  n24 = length(intersect(kraken22_FP, metaphlan4_FP)),
+  n34 = length(intersect(kraken_gtdb_FP, metaphlan4_FP)),
+  n123 = length(intersect(intersect(kaiju_FP, kraken22_FP), kraken_gtdb_FP)),
+  n124 = length(intersect(intersect(kaiju_FP, kraken22_FP), metaphlan4_FP)),
+  n134 = length(intersect(intersect(kaiju_FP, kraken_gtdb_FP), metaphlan4_FP)),
+  n234 = length(intersect(intersect(kraken22_FP, kraken_gtdb_FP), metaphlan4_FP)),
+  n1234 = length(intersect(intersect(intersect(kaiju_FP, kraken22_FP), kraken_gtdb_FP), metaphlan4_FP)),
+  category.col = c("#CA562C", "#009E73", "#56B4E9", "purple"),
+  fill = c("#CA562C", "#009E73", "#56B4E9", "purple"),
+  category.names = c("Kaiju", "Kraken22", "Kraken.gtdb", "MetaPhlAn4"),
+  output = TRUE
+)
+
+ggsave("FP_Venn.png", plot = venn.plot, dpi = 300, width = 6, height = 6)
+
+
+
+####################################
+########## FOR FALSE-NEGATIVES
+####################################
+# Step 1: Extract FNs for Each Tool
+
+# Filter for FNs from Kraken.gtdb
+kraken_gtdb_FN <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Kraken.gtdb") & result == "FN") %>%
+  pull(family)
+
+# Filter for FNs from Kaiju
+kaiju_FN <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Kaiju") & result == "FN") %>%
+  pull(family)
+
+# Filter for FNs from Kraken22
+kraken22_FN <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Kraken") & !str_detect(lib_id, "Kraken.gtdb") & result == "FN") %>%
+  pull(family)
+
+# Filter for FNs from Metaphlan4
+metaphlan4_FN <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Metaphlan4") & result == "FN") %>%
+  pull(family)
+
+# Step 2: Create Lists of FNs for Each Tool
+# (This step is actually combined in Step 1 by using `pull(family)` to directly create lists)
+
+# Correct intersections for three or more sets
+n123 <- length(intersect(intersect(kraken_gtdb_FN, kaiju_FN), kraken22_FN))
+n124 <- length(intersect(intersect(kraken_gtdb_FN, kaiju_FN), metaphlan4_FN))
+n134 <- length(intersect(intersect(kraken_gtdb_FN, kraken22_FN), metaphlan4_FN))
+n234 <- length(intersect(intersect(kaiju_FN, kraken22_FN), metaphlan4_FN))
+n1234 <- length(intersect(intersect(intersect(kraken_gtdb_FN, kaiju_FN), kraken22_FN), metaphlan4_FN))
+
+dev.off()
+
+# Now plot the Venn diagram
+venn.plot <- draw.quad.venn(
+  category1 = "Kaiju",
+  category2 = "Kraken22",
+  category3 = "Kraken.gtdb",
+  category4 = "Metaphlan4",
+  area1 = length(unique(kaiju_FN)),
+  area2 = length(unique(kraken22_FN)),
+  area3 = length(unique(kraken_gtdb_FN)),
+  area4 = length(unique(metaphlan4_FN)),
+  n12 = length(intersect(kaiju_FN, kraken22_FN)),
+  n13 = length(intersect(kaiju_FN, kraken_gtdb_FN)),
+  n14 = length(intersect(kaiju_FN, metaphlan4_FN)),
+  n23 = length(intersect(kraken22_FN, kraken_gtdb_FN)),
+  n24 = length(intersect(kraken22_FN, metaphlan4_FN)),
+  n34 = length(intersect(kraken_gtdb_FN, metaphlan4_FN)),
+  n123 = length(intersect(intersect(kaiju_FN, kraken22_FN), kraken_gtdb_FN)),
+  n124 = length(intersect(intersect(kaiju_FN, kraken22_FN), metaphlan4_FN)),
+  n134 = length(intersect(intersect(kaiju_FN, kraken_gtdb_FN), metaphlan4_FN)),
+  n234 = length(intersect(intersect(kraken22_FN, kraken_gtdb_FN), metaphlan4_FN)),
+  n1234 = length(intersect(intersect(intersect(kaiju_FN, kraken22_FN), kraken_gtdb_FN), metaphlan4_FN)),
+  category.col = c("#CA562C", "#009E73", "#56B4E9", "purple"),
+  fill = c("#CA562C", "#009E73", "#56B4E9", "purple"),
+  category.names = c("Kaiju", "Kraken22", "Kraken.gtdb", "MetaPhlAn4"),
+  output = TRUE
+)
+
+ggsave("FN_Venn.png", plot = venn.plot, dpi = 300, width = 6, height = 6)
+
+####################################
+########## FOR TRUE-POSITIVES
+####################################
+# Step 1: Extract TPs for Each Tool
+
+# Filter for TPs from Kraken.gtdb
+kraken_gtdb_TP <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Kraken.gtdb") & result == "TP") %>%
+  pull(family)
+
+# Filter for TPs from Kaiju
+kaiju_TP <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Kaiju") & result == "TP") %>%
+  pull(family)
+
+# Filter for TPs from Kraken22
+kraken22_TP <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Kraken") & !str_detect(lib_id, "Kraken.gtdb") & result == "TP") %>%
+  pull(family)
+
+# Filter for TPs from Metaphlan4
+metaphlan4_TP <- observed_expected2 %>%
+  filter(str_detect(lib_id, "Metaphlan4") & result == "TP") %>%
+  pull(family)
+
+# Step 2: Create Lists of TPs for Each Tool
+# (This step is actually combined in Step 1 by using `pull(family)` to directly create lists)
+
+# Correct intersections for three or more sets
+n123 <- length(intersect(intersect(kraken_gtdb_TP, kaiju_TP), kraken22_TP))
+n124 <- length(intersect(intersect(kraken_gtdb_TP, kaiju_TP), metaphlan4_TP))
+n134 <- length(intersect(intersect(kraken_gtdb_TP, kraken22_TP), metaphlan4_TP))
+n234 <- length(intersect(intersect(kaiju_TP, kraken22_TP), metaphlan4_TP))
+n1234 <- length(intersect(intersect(intersect(kraken_gtdb_TP, kaiju_TP), kraken22_TP), metaphlan4_TP))
+
+dev.off()
+
+# Now plot the Venn diagram
+venn.plot <- draw.quad.venn(
+  category1 = "Kaiju",
+  category2 = "Kraken22",
+  category3 = "Kraken.gtdb",
+  category4 = "Metaphlan4",
+  area1 = length(unique(kaiju_TP)),
+  area2 = length(unique(kraken22_TP)),
+  area3 = length(unique(kraken_gtdb_TP)),
+  area4 = length(unique(metaphlan4_TP)),
+  n12 = length(intersect(kaiju_TP, kraken22_TP)),
+  n13 = length(intersect(kaiju_TP, kraken_gtdb_TP)),
+  n14 = length(intersect(kaiju_TP, metaphlan4_TP)),
+  n23 = length(intersect(kraken22_TP, kraken_gtdb_TP)),
+  n24 = length(intersect(kraken22_TP, metaphlan4_TP)),
+  n34 = length(intersect(kraken_gtdb_TP, metaphlan4_TP)),
+  n123 = length(intersect(intersect(kaiju_TP, kraken22_TP), kraken_gtdb_TP)),
+  n124 = length(intersect(intersect(kaiju_TP, kraken22_TP), metaphlan4_TP)),
+  n134 = length(intersect(intersect(kaiju_TP, kraken_gtdb_TP), metaphlan4_TP)),
+  n234 = length(intersect(intersect(kraken22_TP, kraken_gtdb_TP), metaphlan4_TP)),
+  n1234 = length(intersect(intersect(intersect(kaiju_TP, kraken22_TP), kraken_gtdb_TP), metaphlan4_TP)),
+  category.col = c("#CA562C", "#009E73", "#56B4E9", "purple"),
+  fill = c("#CA562C", "#009E73", "#56B4E9", "purple"),
+  category.names = c("Kaiju", "Kraken22", "Kraken.gtdb", "MetaPhlAn4"),
+  output = TRUE
+)
+
+ggsave("TPs_venn.png", plot = venn.plot, dpi = 300, width = 6, height = 6)
+
+####################################
+########## FOR FALSE-POSITIVES
+####################################
+# Create a contingency table
+contingency_table <- table(observed_expected3$tool, observed_expected2$result)
+
+# View the table
+print(contingency_table)
+chisq_result <- chisq.test(contingency_table)
+
+# View the result
+print(chisq_result)
+
+library(knitr)
+# Combine contingency table and Chi-squared results
+combined_table <- rbind(contingency_table,
+                        Statistic = c(chisq_result$statistic, rep(NA, ncol(contingency_table)-1)),
+                        p_value = c(chisq_result$p.value, rep(NA, ncol(contingency_table)-1)))
+
+print(combined_table)
+write.csv(combined_table, "chi_square_table.csv", row.names = TRUE)
+
+library("gplots")
+# 1. Read the csv file
+contingency_table <- read.csv("chi_square_table.csv", row.names = 1)
+
+# 2. Remove the rows 'Statistic' and 'p_value'
+contingency_table <- contingency_table[!rownames(contingency_table) %in% c("Statistic", "p_value"), ]
+
+# Print the modified table
+print(contingency_table)
+
+rownames(contingency_table) <- c("Kaiju", "custom.Kraken", "Kraken", "Metaphlan4")
+colnames(contingency_table) <- c("FN", "FP", "TN", "TP")
+
+# Ensure that contingency_table is indeed a matrix
+contingency_table <- as.matrix(contingency_table)
+# Convert the matrix to a long format dataframe
+df_long <- as.data.frame(as.table(contingency_table))
+
+# Using balloonplot:
+png("Balloonplot.png", width=5000, height=5000, res =600)
+balloonplot(df_long$Var2, df_long$Var1, df_long$Freq,
+            main = "Contingency Table Visualization",
+            xlab = "Results", ylab = "Tools",
+            label = FALSE, show.margins = TRUE, dotcolor="#BEBADA")
+
+dev.off()
+
