@@ -1,0 +1,482 @@
+#This script contains code for
+#Supplementary_Figure 4
+#Supplementary_Figure 5
+library(tidyverse)
+library(dplyr)
+
+df_long <-  read.table("Data/Family_results.tsv", header =T,  sep="\t")
+df_long <-  df_long %>% separate(sample_name, into = c("sample_name", "run", "tool"), sep = "\\.")
+df_long2 <-   df_long %>%  group_by(family, sample_name, run, tool) %>%
+  summarise(rel.abundance = sum(abundance))
+df_long2$tool <- gsub("Kraken_gtdb", "Kraken.gtdb", df_long2$tool)
+
+expected <-  df_long2 %>% filter(tool == "insilico") %>%  #filter everything insilico
+  rename(expected = rel.abundance)  #rename rel.abundance as expected
+expected <-  expected %>% distinct()
+
+observed <-  df_long2 %>% filter(tool != "insilico")
+observed <-  observed %>% filter(tool != "Metaphlan3")
+observed <-  observed %>% filter(tool != "Kraken")
+observed1 <- observed %>%
+  filter(tool %in% c("Kaiju", "Kraken.gtdb", "Metaphlan4")) %>%
+  filter(rel.abundance > 0.001) %>%
+  rename(observed = rel.abundance)
+
+observed2 <- observed %>%
+  filter(tool %in% c("Kraken22")) %>%
+  filter_at(vars(5), any_vars(.> 0.005)) %>%
+  rename(observed = rel.abundance)
+
+observed <- rbind(observed1, observed2)
+
+#Processing each tool differently
+KJ_observed <-  subset(observed, tool == "Kaiju")
+KJ_observed$threshold <- "0.001"
+KJ_observed <-  KJ_observed %>%
+  select(family, tool,threshold, observed, sample_name, run) %>%
+  pivot_wider(names_from = threshold, values_from = observed) %>%
+  mutate(across(everything(), ~replace(., is.na(.), 0)))
+
+result <- full_join(KJ_observed, expected, by = c("run", "sample_name", "family"))
+
+# Fill NA values in tool.x with "Kaiju"
+result$tool.x <- ifelse(is.na(result$tool.x), "Kaiju", result$tool.x)
+# Fill NA values in tool.y with "insilico"
+result$tool.y <- ifelse(is.na(result$tool.y), "insilico", result$tool.y)
+# Replace values in the specified columns
+result[, c( "0.001","expected")] <-
+  ifelse(result[, c("0.001",  "expected")] > 0, "present", "absent")
+df_longer.KJ <- result %>%
+  pivot_longer(cols = 5, names_to = "threshold", values_to = "observed") %>%
+  select(family, tool.x, sample_name, run, expected, threshold, observed)  %>%
+  mutate(expected = ifelse(is.na(expected) == T , "absent", expected)) %>%
+  mutate(observed = ifelse(is.na(observed) == T , "absent", observed))
+
+MP4_observed <- subset(observed, tool == "Metaphlan4")
+MP4_observed$threshold <-  "0.001"
+MP4_observed <-  MP4_observed %>%
+  select(family, tool,threshold, observed, sample_name, run) %>%
+  pivot_wider(names_from = threshold, values_from = observed) %>%
+  mutate(across(everything(), ~replace(., is.na(.), 0)))
+
+result <- full_join(MP4_observed, expected, by = c("run", "sample_name", "family"))
+# Fill NA values in tool.x with "Metaphlan3"
+result$tool.x <- ifelse(is.na(result$tool.x), "Metaphlan4", result$tool.x)
+# Fill NA values in tool.y with "insilico"
+result$tool.y <- ifelse(is.na(result$tool.y), "insilico", result$tool.y)
+# Replace values in the specified columns
+result[, c( "0.001","expected")] <-
+  ifelse(result[, c("0.001",  "expected")] > 0, "present", "absent")
+df_longer.MP4 <- result %>%
+  pivot_longer(cols = 5, names_to = "threshold", values_to = "observed") %>%
+  select(family, tool.x, sample_name, run, expected, threshold, observed)  %>%
+  mutate(expected = ifelse(is.na(expected) == T , "absent", expected)) %>%
+  mutate(observed = ifelse(is.na(observed) == T , "absent", observed))
+
+KR_observed <-  subset(observed, tool == "Kraken22")
+KR_observed$threshold <- "0.001"
+KR_observed <-  KR_observed %>%
+  select(family, tool,threshold, observed, sample_name, run) %>%
+  pivot_wider(names_from = threshold, values_from = observed) %>%
+  mutate(across(everything(), ~replace(., is.na(.), 0)))
+
+result <- full_join(KR_observed, expected, by = c("run", "sample_name", "family"))
+# Fill NA values in tool.x with "Kraken"
+result$tool.x <- ifelse(is.na(result$tool.x), "Kraken22", result$tool.x)
+# Fill NA values in tool.y with "insilico"
+result$tool.y <- ifelse(is.na(result$tool.y), "insilico", result$tool.y)
+# Replace values in the specified columns
+result[, c( "0.001","expected")] <-
+  ifelse(result[, c("0.001",  "expected")] > 0, "present", "absent")
+df_longer.KR <- result %>%
+  pivot_longer(cols = 5, names_to = "threshold", values_to = "observed") %>%
+  select(family, tool.x, sample_name, run, expected, threshold, observed)  %>%
+  mutate(expected = ifelse(is.na(expected) == T , "absent", expected)) %>%
+  mutate(observed = ifelse(is.na(observed) == T , "absent", observed))
+
+KG_observed <-  subset(observed, tool == "Kraken.gtdb")
+KG_observed$threshold <- "0.001"
+KG_observed <-  KG_observed %>%
+  select(family, tool,threshold, observed, sample_name, run) %>%
+  pivot_wider(names_from = threshold, values_from = observed) %>%
+  mutate(across(everything(), ~replace(., is.na(.), 0)))
+
+
+result <- full_join(KG_observed, expected, by = c("run", "sample_name", "family"))
+# Fill NA values in tool.x with "Kraken.gtdb"
+result$tool.x <- ifelse(is.na(result$tool.x), "Kraken.gtdb", result$tool.x)
+# Fill NA values in tool.y with "insilico"
+result$tool.y <- ifelse(is.na(result$tool.y), "insilico", result$tool.y)
+# Replace values in the specified columns
+result[, c( "0.001","expected")] <-
+  ifelse(result[, c("0.001",  "expected")] > 0, "present", "absent")
+df_longer.KG <- result %>%
+  pivot_longer(cols = 5, names_to = "threshold", values_to = "observed") %>%
+  select(family, tool.x, sample_name, run, expected, threshold, observed)  %>%
+  mutate(expected = ifelse(is.na(expected) == T , "absent", expected)) %>%
+  mutate(observed = ifelse(is.na(observed) == T , "absent", observed))
+
+#Pool all the tools together
+observed_expected <-  rbind(df_longer.KG,df_longer.KJ,df_longer.MP4, df_longer.KR) %>%
+  rename(tool = tool.x)
+observed_expected <- observed_expected[,-c(6)]
+print(unique(observed_expected$tool))
+observed_expected2 <- observed_expected %>%
+  mutate(tool = factor(tool, levels =c("Kraken22", "Kraken.gtdb", "Kaiju",  "Metaphlan4"))) %>%
+  mutate(run =factor(run, levels = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"))) %>%
+  mutate(expected=factor(expected, levels=c("present", "absent"))) %>%
+  mutate(observed=factor(observed, levels=c("present", "absent"))) %>%
+  unite(lib_id, c("sample_name", "run", "tool"), sep ="_") %>%
+  mutate(lib_id=as.factor(lib_id)) %>%
+  group_by(lib_id) %>%
+  mutate(
+    result = case_when(
+      observed == "present" & expected == "present" ~ "TP",
+      observed == "absent" & expected == "present" ~ "FN",
+      observed == "present" & expected == "absent" ~ "FP",
+      TRUE ~ "TN"  # This accounts for observed "absent" & expected "absent"
+    )
+  ) %>% distinct()
+
+observed_expected2 <- observed_expected2 %>% separate(lib_id, into = c("sample_name", "run", "tool"), sep = "\\_")
+
+# Count the number of FP, FN, and TP for each tool at each family
+tool_family_counts <- observed_expected2 %>%
+  filter(tool != "Metaphlan4") %>%
+  group_by(family, tool) %>%
+  summarize(
+    FP = sum(result == "FP"),
+    FN = sum(result == "FN"),
+    TP = sum(result == "TP"),
+    .groups = 'drop'
+  )
+
+# Display the first few rows
+head(tool_family_counts)
+##############################################
+#FALSE POSITIVES
+###############################################
+subset_200FP <- tool_family_counts %>%
+  filter(FP == 200)
+subset_200FP <- head(subset_200FP, -3)
+
+############################
+library(taxize)
+unique_families <- unique(subset_200FP$family)
+family <- unique_families
+taxize_class <- lapply(family, function(x) {
+  tryCatch({
+    taxize::classification(x, db = "ncbi")
+  }, error = function(e) {
+    NULL
+  })
+})
+
+taxize_class_with_family <- lapply(1:length(taxize_class), function(i) {
+  df <- taxize_class[[i]]
+  df$Family <- unique_families[i]
+  return(df)
+})
+combined_df <- do.call(rbind, taxize_class_with_family)
+
+combined_df_cleaned <- combined_df %>%
+  group_by(query, rank) %>%
+  summarize(name = first(name))
+
+reshaped_df <- combined_df_cleaned %>%
+  spread(key = rank, value = name) %>%
+  mutate(Family = query)
+
+# Keep specific columns from reshaped_df
+selected_columns_df <- reshaped_df %>%
+  select(1, 6,  10, 19)
+
+selected_columns_df  <- selected_columns_df %>%
+  mutate(kingdom = ifelse(phylum == "Pseudomonadota" & is.na(kingdom), "Bacteria", kingdom))
+selected_columns_df <- selected_columns_df %>%
+  mutate(kingdom = ifelse((phylum %in% c("Apicomplexa", "Ciliophora", "Oomycota") & is.na(kingdom)), "Chromista", kingdom))
+selected_columns_df  <- selected_columns_df %>%
+  mutate(kingdom = ifelse(phylum == "Euglenozoa" & is.na(kingdom), "Bacteria", kingdom))
+
+# Rename the column
+selected_columns_df <- selected_columns_df %>%
+  rename(family = Family)
+# Join the data
+merged_df <- subset_200FP %>%
+  left_join(selected_columns_df[, c("family", "kingdom", "phylum")], by = "family")
+
+merged_df <- merged_df %>%
+  mutate(kingdom = ifelse((family %in% c("Tricholomataceae", "Sordariaceae") & is.na(kingdom)), "Fungi", kingdom))
+merged_df$tool <- gsub("Kraken22", "Kraken", merged_df$tool)
+
+write.csv(merged_df, "FP_heatmap.tmp.csv", row.names = FALSE)
+
+library(tidyverse)
+library(pheatmap)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+
+merged_df <- read.csv("FP_heatmap.tmp.csv",  header =TRUE)
+merged_df <- merged_df %>%
+  mutate(kingdom = ifelse((family %in% c("Symbiodiniaceae") & is.na(kingdom)), "Chromista", kingdom))
+merged_df <- merged_df %>%
+  mutate(kingdom = ifelse((family %in% c("Viruses") & is.na(kingdom)), "Viruses", kingdom))
+merged_df$tool <- gsub("Kraken.gtdb", "custom.Kraken", merged_df$tool )
+
+
+heatmap_data <- merged_df %>%
+  select(-c(FN, TP, kingdom, phylum)) %>%
+  replace(is.na(.), 0)
+
+# Pivoting the data for the heatmap
+heatmap_matrix <- heatmap_data %>%
+  pivot_wider(names_from = tool, values_from = FP) %>%
+  column_to_rownames(var="family") %>%
+  as.matrix()
+heatmap_matrix[is.na(heatmap_matrix)] <- 0
+
+# Subset to ensure metadata is only for the samples in heatmap_matrix
+metadata <- merged_df %>%
+  filter(family %in% rownames(heatmap_matrix)) %>%
+  select(family, kingdom)
+
+# Handle duplicates: For this example, we'll take the first value in case of duplicates.
+metadata <- metadata %>%
+  group_by(family) %>%
+  summarise(
+    kingdom = first(kingdom)
+  )
+# Now, set the 'family' column as row names
+metadata <- metadata %>%
+  ungroup() %>%
+  remove_rownames() %>%
+  column_to_rownames(var="family")
+# 1. Adjust the order of the kingdom factor if needed
+metadata$kingdom <- factor(metadata$kingdom, levels = c("Fungi", "Bacteria", "Viridiplantae", "Chromista", "Metazoa", "Viruses"))
+metadata <- metadata[rownames(metadata) %in% rownames(heatmap_matrix), , drop = FALSE]
+
+metadata_ordered <- metadata %>% arrange(kingdom)
+print(nrow(metadata_ordered))
+
+ordered_families <- rownames(metadata_ordered)
+print(ordered_families)
+
+# Subset and order heatmap_matrix and annotation_data
+heatmap_matrix <- heatmap_matrix[ordered_families, ]
+annotation_data <- data.frame(Kingdom = metadata$kingdom, row.names = rownames(metadata))
+
+annotation_colors <- c(
+  "Fungi" = "#E69F00",
+  "Bacteria" = "#56B4E9",
+  "Viridiplantae" = "#009E73",
+  "Chromista" = "#F0E442",
+  "Metazoa" = "pink",
+  "Viruses" = "#D55E00"
+)
+
+colnames(annotation_data) <- "Kingdom"
+annotation_legend = data.frame(
+  Kingdom = c(unique(metadata$kingdom))
+)
+color_scale <- colorRampPalette(c("white", "#3d85c6"))(100) # this will create 100 shades from white to red
+
+p <- pheatmap(heatmap_matrix,
+              color = color_scale,
+              annotation_row = annotation_data,
+              annotation_colors = list(Kingdom = annotation_colors),
+              annotation_legend = TRUE,
+              cluster_rows = FALSE,
+              border_color = "black",
+              fontsize = 12,         # Change to desired font size for cell numbers
+              fontsize_row = 14,     # Change to desired font size for row names
+              fontsize_col = 14      # Change to desired font size for column names
+)
+
+# Modify the x-axis and y-axis label font sizes
+p$gtable$grobs[[which(p$gtable$layout$name == "row_names")]]$gp$fontsize <- 10
+p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]]$gp$fontsize <- 10
+
+# Make the x-axis and y-axis labels bold
+p$gtable$grobs[[which(p$gtable$layout$name == "row_names")]]$gp$fontface <- "bold"
+p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]]$gp$fontface <- "bold"
+
+# Rotate the x-axis labels by 180 degrees
+p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]]$rot <- 360
+
+# Extract the column names grob
+col_names_grob <- p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]]
+
+# Adjust the y position of the column names
+col_names_grob$y <- col_names_grob$y - unit(0.1, "npc")
+
+# Adjust the x position of the column names
+col_names_grob$x <- col_names_grob$x - unit(0.05, "npc")
+
+# Replace the modified grob back into the main plot grob
+p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]] <- col_names_grob
+
+# Save the plot with the modified font size
+png(filename = "Heamap_FP.png", width = 10, height = 15, units = "in", res = 300)
+grid.draw(p$gtable)
+dev.off()
+
+##############################################
+#FALSE NEGATIVES
+###############################################
+#In a similar way the metadata was obtained for FN's families
+
+subset_FN <- tool_family_counts %>%
+  filter(FN > 50)
+subset_FN <- subset_FN %>%
+  filter(family != "NULL")
+unique_families <- subset_FN %>%
+  distinct(family) %>%
+  pull(family)
+print(unique_families)
+
+###############
+library(taxize)
+family <- unique_families
+taxize_class <- lapply(family, function(x) {
+  tryCatch({
+    taxize::classification(x, db = "ncbi")
+  }, error = function(e) {
+    NULL
+  })
+})
+
+taxize_class_with_family <- lapply(1:length(taxize_class), function(i) {
+  df <- taxize_class[[i]]
+  df$Family <- unique_families[i]
+  return(df)
+})
+combined_df <- do.call(rbind, taxize_class_with_family)
+
+combined_df_cleaned <- combined_df %>%
+  group_by(query, rank) %>%
+  summarize(name = first(name))
+
+reshaped_df <- combined_df_cleaned %>%
+  spread(key = rank, value = name) %>%
+  mutate(Family = query)
+# Keep specific columns from reshaped_df
+selected_columns_df <- reshaped_df %>%
+  select(1, 5,8)
+
+selected_columns_df <- selected_columns_df %>%
+  mutate(kingdom = ifelse((phylum %in% c("Deferribacterota","Acidobacteriota", "Actinomycetota", "Aquificota", "Pseudomonadota", "Spirochaetota", "Bdellovibrionota", "Bacillota", "Campylobacterota", "Cyanobacteriota") & is.na(kingdom)), "Bacteria", kingdom))
+
+# Rename the column
+selected_columns_df <- selected_columns_df %>%
+  rename(family = query)
+# Join the data
+merged_df <- subset_FN %>%
+  left_join(selected_columns_df[, c("family", "kingdom", "phylum")], by = "family")
+
+merged_df <- merged_df %>%
+  mutate(kingdom = ifelse((family %in% c("Astrosphaeriellaceae") & is.na(kingdom)), "Fungi", kingdom))
+merged_df$tool <- gsub("Kraken22", "Kraken", merged_df$tool)
+
+write.csv(merged_df, "FN_heatmap.tmp.csv", row.names = FALSE)
+merged_df <- read.csv("FN_heatmap.tmp.csv",  header =TRUE)
+
+# Pivot the data for the heatmap
+# Removing columns and replacing NA
+heatmap_data <- merged_df %>%
+  select(-c(FP, TP, kingdom, phylum)) %>%
+  replace(is.na(.), 0)
+
+# Pivoting the data for the heatmap
+heatmap_matrix <- heatmap_data %>%
+  pivot_wider(names_from = tool, values_from = FN) %>%
+  column_to_rownames(var="family") %>%
+  as.matrix()
+heatmap_matrix[is.na(heatmap_matrix)] <- 0
+
+# Subset to ensure metadata is only for the samples in heatmap_matrix
+metadata <- merged_df %>%
+  filter(family %in% rownames(heatmap_matrix)) %>%
+  select(family, kingdom)
+# Handle duplicates: For this example, we'll take the first value in case of duplicates.
+metadata <- metadata %>%
+  group_by(family) %>%
+  summarise(
+    kingdom = first(kingdom)
+  )
+# Now, set the 'family' column as row names
+metadata <- metadata %>%
+  ungroup() %>%
+  remove_rownames() %>%
+  column_to_rownames(var="family")
+# Convert the kingdom column into a factor with desired order
+metadata$kingdom <- factor(metadata$kingdom, levels = c("Fungi", "Bacteria"))
+metadata <- metadata[rownames(metadata) %in% rownames(heatmap_matrix), , drop = FALSE]
+
+metadata_ordered <- metadata %>% arrange(kingdom)
+print(nrow(metadata_ordered))
+
+ordered_families <- rownames(metadata_ordered)
+print(ordered_families)
+
+# Subset and order heatmap_matrix and annotation_data
+heatmap_matrix <- heatmap_matrix[ordered_families, ]
+annotation_data <- annotation_data[ordered_families, ]
+
+# Define colors for the annotations (already present in your code)
+annotation_colors <- c(
+  "Fungi" = "#E69F00",
+  "Bacteria" = "#56B4E9"
+)
+
+# Define annotation data for pheatmap
+annotation_data <- data.frame(Kingdom = metadata$kingdom, row.names = rownames(metadata))
+
+colnames(annotation_data) <- "Kingdom"
+annotation_legend = data.frame(
+  Kingdom = c(unique(metadata$kingdom))
+)
+rownames(annotation_legend) = annotation_legend$Kingdom
+color_scale <- colorRampPalette(c("white", "#3d85c6"))(100) # this will create 100 shades from white to red
+
+# Drawing the heatmap
+p <- pheatmap(heatmap_matrix,
+              color = color_scale,
+              annotation_row = annotation_data,
+              annotation_colors = list(Kingdom = annotation_colors),
+              annotation_legend = TRUE,
+              cluster_rows = FALSE,
+              border_color = "black",
+              fontsize = 12,         # Change to desired font size for cell numbers
+              fontsize_row = 14,     # Change to desired font size for row names
+              fontsize_col = 14      # Change to desired font size for column names
+)
+
+# Modify the x-axis and y-axis label font sizes
+p$gtable$grobs[[which(p$gtable$layout$name == "row_names")]]$gp$fontsize <- 10
+p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]]$gp$fontsize <- 10
+
+# Make the x-axis and y-axis labels bold
+p$gtable$grobs[[which(p$gtable$layout$name == "row_names")]]$gp$fontface <- "bold"
+p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]]$gp$fontface <- "bold"
+
+# Rotate the x-axis labels by 180 degrees
+p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]]$rot <- 360
+
+# Extract the column names grob
+col_names_grob <- p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]]
+
+# Adjust the y position of the column names
+col_names_grob$y <- col_names_grob$y - unit(0.1, "npc")
+
+# Adjust the x position of the column names
+col_names_grob$x <- col_names_grob$x - unit(0.05, "npc")
+
+# Replace the modified grob back into the main plot grob
+p$gtable$grobs[[which(p$gtable$layout$name == "col_names")]] <- col_names_grob
+
+# Save the plot with the modified font size
+png(filename = "Heatmap_FNs.png", width = 10, height = 15, units = "in", res = 300)
+grid.draw(p$gtable)
+dev.off()
+
