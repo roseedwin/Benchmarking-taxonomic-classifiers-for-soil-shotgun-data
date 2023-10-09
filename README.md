@@ -33,4 +33,4 @@ Since this contained only sequences of cultivated soil species we downloaded mor
 
 NCBI Nuccore database: Acquiring all Bacterial complete genome sequences from the 'Nuccore' database in NCBI from RefSeq database whose isolation source is described as soil.
 
-Associated datasets and input files have been deposited at zenodo at 
+
