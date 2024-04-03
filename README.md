@@ -28,6 +28,7 @@ A comprehensive repository of bacterial and archaeal genome sequences was create
 A comprehensive metadata file, "SoilGenomeDB.xlsx", includes details of soil-specific bacterial, archaeal, and fungal genomes from NCBI.
 
 **Manuscript**
+
 For detailed insights and the scientific background of our project, please refer to our manuscript. You can access the manuscript through the following link: https://doi.org/10.1186/s40793-024-00561-w
 
 
