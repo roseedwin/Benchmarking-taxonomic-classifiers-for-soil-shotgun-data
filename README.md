@@ -25,7 +25,7 @@ Fungal-mitochondrial-genomes: To complement the collection, mitochondrial fasta 
 A comprehensive repository of bacterial and archaeal genome sequences was created by collating multiple sources, including the RefSoil database (https://github.com/germs-lab/ref_soil/tree/master/script_download_refsoil) and the NCBI Nuccore database, focusing on sequences from non-cultured soil bacteria with an isolation source described as soil. 
 
 **<ins> Final metadata file </ins>**
-A comprehensive metadata file, "SoilGenomeDB.xlsx", includes details of soil-specific bacterial, archaeal, and fungal genomes from NCBI.
+A comprehensive metadata file, "SoilGenomeDB.xlsx", includes details of soil-specific bacterial, archaeal, and fungal genomes.
 
 **Manuscript**
 
