@@ -1,16 +1,14 @@
 # Benchmarking-taxonomic-classifiers-for-soil-shotgun-data
 
-This repository contains the final version of scripts used to prepare data for simulation, simulation scripts, alongside the prepared pipelines and classifier scripts used to process the simulated sequencing data for the publication on Benchmarking taxonomic classifiers for accurate profiling of fungal, bacterial and archaeal communities in soil shotgun metagenomic data using in-silico tools (https://doi.org/10.1186/s40793-024-00561-w). Many of the scripts used are modified versions of scripts previously made by Amy H Fitzpatrick available at https://github.com/ahfitzpa/Benchmarking-bioinformatics-norovirus-amplicons
+This repository hosts the final versions of scripts and pipelines used in our publication titled "Benchmarking Taxonomic Classifiers for Accurate Profiling of Fungal, Bacterial, and Archaeal Communities in Soil Shotgun Metagenomic Data Using In-silico Tools." It includes data preparation scripts for simulation, simulation scripts, and classifier scripts for processing the simulated sequencing data. Many scripts are modified versions of those originally created by Amy H Fitzpatrick, available at https://github.com/ahfitzpa/Benchmarking-bioinformatics-norovirus-amplicons
 
-Classifiers compared include Kaiju, Kraken, and Kraken with custom gtdb-tk database, MetaPhlAn3 and MetaPhlAn4.
-
-And custom database used for Kraken is the GTDB-TK database released in 2022 April and Fungal genomes belonging to phylum Basidiomycota, Mucoromycota and Ascomycota as available in the NCBI assembly database on 20th January 2023
+Classifiers compared within this study include Kaiju, Kraken, Kraken2 and Bracken with a custom GTDB-TK database, MetaPhlAn3, and MetaPhlAn4. The custom database used for Kraken incorporates the GTDB-TK database released in April 2022 and fungal genomes belonging to the phyla Basidiomycota, Mucoromycota, and Ascomycota, as available in the NCBI Assembly database as of January 20th, 2023.
 
 **For Creating Soil-Specific Mock Community**
 
 **<ins> Fungal-genome-downloads </ins>**
 
-Using REntrez and command line tools download fungal genomes from the Assembly database of NCBI
+Fungal genomes were downloaded from NCBI's Assembly database using REntrez and command-line tools, based on criteria such as having a reference genome, representative genome, or chromosome/contig level assembly.
 
 _Step 1_: To check how many of the fungal names obtained from MIAE have a Reference genome, Representative genome, or chromosome or contig level assembly.
 
@@ -20,17 +18,16 @@ _Step 3_: Fetching metadata and double checking the pulls Once the metadata and 
 
 _Step 4_: Download genomes using command line tools
 
-Fungal-mitochondrial-genomes: In the absence of a huge turnover of Fungal genomes (89 genomes obtained from Assembly database). The mitochondrial fasta files, in RefSeq from the nuccore database were also downloaded to add to the database (38 mitochondrial genomes) and 6 from the RefSoil database
-
-A total of 133 fungal representatives for the soil Fungal database
+Fungal-mitochondrial-genomes: To complement the collection, mitochondrial fasta files from the RefSeq database and the RefSoil database were downloaded, totaling 133 fungal representatives.
 
 **<ins> Bacteria-Archaea-genome-downloads </ins>**
 
-To create a large repository of genome sequences belonging to bacteria and archaea, multiple sources were collated.
+A comprehensive repository of bacterial and archaeal genome sequences was created by collating multiple sources, including the RefSoil database (https://github.com/germs-lab/ref_soil/tree/master/script_download_refsoil) and the NCBI Nuccore database, focusing on sequences from non-cultured soil bacteria with an isolation source described as soil. 
 
-RefSoil database: The genome sequences and metadata were obtained from https://github.com/germs-lab/ref_soil/tree/master/script_download_refsoil
-Since this contained only sequences of cultivated soil species we downloaded more sequences from the NCBI database to obtain sequences of non-cultured soil bacteria.
+**<ins> Final metadata file </ins>**
+A comprehensive metadata file, "SoilGenomeDB.xlsx", includes details of soil-specific bacterial, archaeal, and fungal genomes from NCBI.
 
-NCBI Nuccore database: Acquiring all Bacterial complete genome sequences from the 'Nuccore' database in NCBI from RefSeq database whose isolation source is described as soil.
+**<ins> Manuscript </ins>**
+For detailed insights and the scientific background of our project, refer to our manuscript titled "An in-depth evaluation of metagenomic classifiers for soil microbiomes". You can access the manuscript through the following link: https://doi.org/10.1186/s40793-024-00561-w
 
 
