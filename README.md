@@ -1,6 +1,6 @@
 # Benchmarking-taxonomic-classifiers-for-soil-shotgun-data
 
-This repository hosts the final versions of scripts and pipelines used in our publication titled "Benchmarking Taxonomic Classifiers for Accurate Profiling of Fungal, Bacterial, and Archaeal Communities in Soil Shotgun Metagenomic Data Using In-silico Tools." It includes data preparation scripts for simulation, simulation scripts, and classifier scripts for processing the simulated sequencing data. Many scripts are modified versions of those originally created by Amy H Fitzpatrick, available at https://github.com/ahfitzpa/Benchmarking-bioinformatics-norovirus-amplicons
+This repository hosts the final versions of scripts and pipelines used in our publication titled "An in-depth evaluation of metagenomic classifiers for soil microbiomes" It includes data preparation scripts for simulation, simulation scripts, and classifier scripts for processing the simulated sequencing data. Many scripts are modified versions of those originally created by Amy H Fitzpatrick, available at https://github.com/ahfitzpa/Benchmarking-bioinformatics-norovirus-amplicons
 
 Classifiers compared within this study include Kaiju, Kraken, Kraken2 and Bracken with a custom GTDB-TK database, MetaPhlAn3, and MetaPhlAn4. The custom database used for Kraken incorporates the GTDB-TK database released in April 2022 and fungal genomes belonging to the phyla Basidiomycota, Mucoromycota, and Ascomycota, as available in the NCBI Assembly database as of January 20th, 2023.
 
@@ -28,6 +28,6 @@ A comprehensive repository of bacterial and archaeal genome sequences was create
 A comprehensive metadata file, "SoilGenomeDB.xlsx", includes details of soil-specific bacterial, archaeal, and fungal genomes from NCBI.
 
 **<ins> Manuscript </ins>**
-For detailed insights and the scientific background of our project, refer to our manuscript titled "An in-depth evaluation of metagenomic classifiers for soil microbiomes". You can access the manuscript through the following link: https://doi.org/10.1186/s40793-024-00561-w
+For detailed insights and the scientific background of our project, please refer to our manuscript. You can access the manuscript through the following link: https://doi.org/10.1186/s40793-024-00561-w
 
 
